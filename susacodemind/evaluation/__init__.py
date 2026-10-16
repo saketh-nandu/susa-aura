@@ -1,8 +1,18 @@
 """
-SUSA-1B CodeMind — Automated Evaluation Suite.
-
-Provides isolated execution harnesses, perplexity calculation, code completion benchmarks,
-and unit-test validation suites with strict sandboxing.
+SUSA-1B CodeMind — Automated Evaluation & Sandboxing Subsystem.
 """
 
-__all__ = []
+from susacodemind.evaluation.code_eval import (
+    CodeEvaluator,
+    CodingBenchmarkTask,
+    EvalTaskResult,
+)
+from susacodemind.evaluation.sandbox import ExecutionResult, IsolatedCodeRunner
+
+__all__ = [
+    "ExecutionResult",
+    "IsolatedCodeRunner",
+    "CodingBenchmarkTask",
+    "EvalTaskResult",
+    "CodeEvaluator",
+]

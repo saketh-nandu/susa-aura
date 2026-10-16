@@ -115,8 +115,8 @@ pytest tests/
 - [x] **Milestone 5 — GitHub & Google Colab Integration:** Cloud replication and Drive checkpoint sync.
 - [ ] **Milestone 6 — GPU Benchmarking:** Measure tokens/sec and determine feasible training scale on free Colab tier.
 - [ ] **Milestone 7 — Pretraining Runs:** Scaled pretraining experiments with transparent loss curves and checkpoints.
-- [ ] **Milestone 8 — Instruction Tuning & Evaluation:** Supervised fine-tuning for code instruction following and sandboxed benchmarking.
-- [ ] **Milestone 9 — Local Inference & Coding Agent Runtime:** Safety-constrained agent for autonomous workspace assistance.
+- [x] **Milestone 8 — Instruction Tuning & Evaluation:** Supervised fine-tuning for code instruction following and sandboxed benchmarking.
+- [x] **Milestone 9 — Local Inference & Coding Agent Runtime:** Safety-constrained agent for autonomous workspace assistance.
 
 ---
 

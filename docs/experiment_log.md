@@ -93,3 +93,31 @@ This file tracks all milestones, system diagnostics, benchmark results, and mode
   - Tested checkpoint synchronization and manifest export.
   - Full test suite verified (37/37 passed, 90% coverage).
   - Zero paid resources consumed (₹0 cost).
+
+---
+
+## Milestone 8 — Instruction Tuning & Evaluation
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `susacodemind/training/instruction_trainer.py`: Supervised Fine-Tuning dataset with prompt loss masking (-100 applied to prompt tokens, loss computed strictly on response tokens) and dynamic batch collation.
+  - `susacodemind/evaluation/sandbox.py`: Subprocess isolated execution runner (`IsolatedCodeRunner`) with strict CPU timeouts (default 3s), memory isolation, and ephemeral sandboxes.
+  - `susacodemind/evaluation/code_eval.py`: Automated code benchmarking suite (`CodeEvaluator`) testing Python AST syntax correctness, assertion test passing, and computing pass@1 metric.
+  - `tests/test_instruction_tuning.py`, `tests/test_evaluation.py`: 7 unit tests.
+
+---
+
+## Milestone 9 — Local Inference & Coding Agent Runtime
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `susacodemind/inference/generator.py`: `CodeGenerator` with checkpoint loading, temperature, top-k, nucleus top-p sampling, and stop-criteria handling.
+  - `scripts/generate.py`: Interactive CLI for code generation and multi-turn REPL chat.
+  - `susacodemind/agent/workspace.py`: `WorkspaceInspector` for reading project trees, parsing file contents, and preventing path-traversal attacks.
+  - `susacodemind/agent/runtime.py`: `CodeMindAgent` for proposing unified diffs without disk mutations, enforcing explicit user approval gates, creating automatic `.bak` backups, and running sandboxed tests.
+  - `scripts/agent.py`: CLI tool for running the CodeMind Agent on any project workspace.
+  - `tests/test_inference.py`, `tests/test_agent.py`: 5 unit tests.
+- **Verification:**
+  - Complete test suite: 49/49 tests passed in 8.31s on local CPU.
+  - Total test coverage: 88% across 1,288 statements.
+  - Zero paid resources consumed (₹0 cost).

@@ -1,8 +1,7 @@
 """
-SUSA-1B CodeMind — Inference & Generation Engine.
-
-Supports lightweight CPU/GPU text generation, temperature, top-k/top-p sampling,
-and memory-safe checkpoint loading.
+SUSA-1B CodeMind — Inference Subsystem.
 """
 
-__all__ = []
+from susacodemind.inference.generator import CodeGenerator
+
+__all__ = ["CodeGenerator"]

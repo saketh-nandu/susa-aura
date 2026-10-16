@@ -1,9 +1,8 @@
 """
-SUSA-1B CodeMind — Coding Agent Runtime.
-
-A controlled, safety-constrained software layer that interfaces with project workspaces,
-proposes file modifications, runs unit tests in sandboxed environments, and requests
-explicit approval for destructive operations.
+SUSA-1B CodeMind — Coding Agent Subsystem.
 """
 
-__all__ = []
+from susacodemind.agent.runtime import CodeMindAgent
+from susacodemind.agent.workspace import FileInfo, WorkspaceInspector
+
+__all__ = ["CodeMindAgent", "WorkspaceInspector", "FileInfo"]
