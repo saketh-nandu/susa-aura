@@ -14,11 +14,10 @@ import os
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import psutil
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 
 from susacodemind.model.transformer import SusaCodeMind
@@ -45,7 +44,7 @@ class TrainingConfig:
     log_interval: int = 1
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> TrainingConfig:
+    def from_dict(cls, data: dict[str, Any]) -> TrainingConfig:
         train_data = data.get("training", data)
         valid_keys = {
             "batch_size",
@@ -75,9 +74,10 @@ class Trainer:
         self,
         model: SusaCodeMind,
         train_dataset: Dataset,
-        val_dataset: Optional[Dataset] = None,
-        config: Optional[TrainingConfig] = None,
-        device: Optional[torch.device] = None,
+        val_dataset: Dataset | None = None,
+        config: TrainingConfig | None = None,
+        device: torch.device | None = None,
+        collate_fn: Any | None = None,
     ) -> None:
         self.config = config or TrainingConfig()
         torch.manual_seed(self.config.seed)
@@ -98,6 +98,7 @@ class Trainer:
             batch_size=self.config.batch_size,
             shuffle=True,
             drop_last=True,
+            collate_fn=collate_fn,
         )
 
         if self.val_dataset is not None and len(self.val_dataset) > 0:
@@ -106,6 +107,7 @@ class Trainer:
                 batch_size=self.config.batch_size,
                 shuffle=False,
                 drop_last=False,
+                collate_fn=collate_fn,
             )
         else:
             self.val_loader = None
@@ -126,7 +128,7 @@ class Trainer:
         )
 
         self.global_step = 0
-        self.history: List[Dict[str, Any]] = []
+        self.history: list[dict[str, Any]] = []
 
     def _configure_optimizers(self) -> torch.optim.Optimizer:
         """Configures AdamW with weight decay separation.
@@ -182,7 +184,7 @@ class Trainer:
             param_group["lr"] = lr
 
     @torch.no_grad()
-    def evaluate(self) -> Dict[str, float]:
+    def evaluate(self) -> dict[str, float]:
         """Runs evaluation loop over validation dataset."""
         if self.val_loader is None:
             return {"val_loss": 0.0, "perplexity": 0.0}
@@ -213,7 +215,7 @@ class Trainer:
         perplexity = math.exp(min(avg_loss, 20.0))  # Cap to prevent overflow
         return {"val_loss": avg_loss, "perplexity": perplexity}
 
-    def save_checkpoint(self, filepath: Union[str, Path], val_loss: Optional[float] = None) -> Path:
+    def save_checkpoint(self, filepath: str | Path, val_loss: float | None = None) -> Path:
         """Saves complete training checkpoint."""
         save_path = Path(filepath)
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -230,7 +232,7 @@ class Trainer:
         torch.save(state, save_path)
         return save_path
 
-    def load_checkpoint(self, filepath: Union[str, Path]) -> int:
+    def load_checkpoint(self, filepath: str | Path) -> int:
         """Loads model weights, optimizer, and training step to resume training."""
         ckpt_path = Path(filepath)
         if not ckpt_path.exists():
@@ -245,7 +247,7 @@ class Trainer:
         self.global_step = checkpoint.get("step", 0)
         return self.global_step
 
-    def train(self) -> List[Dict[str, Any]]:
+    def train(self) -> list[dict[str, Any]]:
         """Executes main training loop."""
         print("\n" + "=" * 70)
         print("  SUSA-1B CODEMIND — PRETRAINING ENGINE STARTED")

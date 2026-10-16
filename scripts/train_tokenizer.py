@@ -56,7 +56,7 @@ def main() -> int:
 
     # Save tokenizer
     tokenizer.save(output_path)
-    print(f"\n  [SUCCESS] Tokenizer trained successfully!")
+    print("\n  [SUCCESS] Tokenizer trained successfully!")
     print(f"  - Vocab Size Achieved: {tokenizer.vocab_size:,}")
     print(f"  - Saved to:            {output_path.resolve()}")
 
@@ -64,7 +64,7 @@ def main() -> int:
     test_code = "def add(x: int, y: int) -> int:\n    return x + y\n"
     encoded = tokenizer.encode(test_code, add_bos=True, add_eos=True)
     decoded = tokenizer.decode(encoded, skip_special_tokens=True)
-    print(f"\n  Round-Trip Fidelity Test:")
+    print("\n  Round-Trip Fidelity Test:")
     print(f"  - Input String:        {test_code.strip()!r}")
     print(f"  - Token IDs ({len(encoded)}):      {encoded}")
     print(f"  - Decoded String:      {decoded.strip()!r}")

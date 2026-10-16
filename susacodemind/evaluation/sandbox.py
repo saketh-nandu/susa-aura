@@ -14,7 +14,6 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -26,7 +25,7 @@ class ExecutionResult:
     stderr: str
     returncode: int
     timed_out: bool = False
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class IsolatedCodeRunner:
@@ -38,7 +37,7 @@ class IsolatedCodeRunner:
     def run_python(
         self,
         code_str: str,
-        timeout_sec: Optional[float] = None,
+        timeout_sec: float | None = None,
     ) -> ExecutionResult:
         """Executes a Python code snippet in an isolated ephemeral directory."""
         timeout = timeout_sec or self.default_timeout_sec
@@ -65,10 +64,10 @@ class IsolatedCodeRunner:
                     cmd,
                     cwd=tmp_dir,
                     env=safe_env,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                     text=True,
                     timeout=timeout,
+                    check=False,
                 )
                 success = proc.returncode == 0
                 return ExecutionResult(

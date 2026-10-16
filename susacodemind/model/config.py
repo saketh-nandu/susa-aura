@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -23,9 +23,9 @@ class ModelConfig:
     max_seq_len: int = 2048
     d_model: int = 2048
     n_heads: int = 16
-    n_kv_heads: Optional[int] = None
+    n_kv_heads: int | None = None
     n_layers: int = 20
-    d_ff: Optional[int] = None
+    d_ff: int | None = None
     norm_eps: float = 1e-5
     rope_theta: float = 10000.0
     tie_word_embeddings: bool = True
@@ -76,7 +76,7 @@ class ModelConfig:
                     f"n_heads ({self.n_heads}) must be divisible by n_kv_heads ({self.n_kv_heads}) for Grouped-Query Attention."
                 )
 
-    def calculate_exact_parameters(self) -> Dict[str, Any]:
+    def calculate_exact_parameters(self) -> dict[str, Any]:
         """Compute the exact parameter count derived from the architecture definition.
 
         Returns a detailed dictionary broken down by functional component.
@@ -146,7 +146,7 @@ class ModelConfig:
         stats = self.calculate_exact_parameters()
         lines = [
             "=" * 64,
-            f"  SUSA-1B CodeMind — Architecture & Parameter Summary",
+            "  SUSA-1B CodeMind — Architecture & Parameter Summary",
             f"  Profile: {self.profile_name}",
             "=" * 64,
             f"  Vocabulary size:       {self.vocab_size:,}",
@@ -172,7 +172,7 @@ class ModelConfig:
         return "\n".join(lines)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ModelConfig:
+    def from_dict(cls, data: dict[str, Any]) -> ModelConfig:
         """Construct ModelConfig from dictionary, handling nested structure if present."""
         model_data = data.get("model", data)
         valid_keys = {
@@ -205,6 +205,6 @@ class ModelConfig:
             content = yaml.safe_load(f)
         return cls.from_dict(content)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return asdict(self)

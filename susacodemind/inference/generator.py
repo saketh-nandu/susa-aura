@@ -8,7 +8,7 @@ temperature, top-k, nucleus (top-p) sampling, and code-block stopping criteria.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Union
+
 import torch
 
 from susacodemind.model.config import ModelConfig
@@ -23,7 +23,7 @@ class CodeGenerator:
         self,
         model: SusaCodeMind,
         tokenizer: SusaTokenizer,
-        device: Optional[torch.device] = None,
+        device: torch.device | None = None,
     ) -> None:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
@@ -33,10 +33,10 @@ class CodeGenerator:
     @classmethod
     def from_checkpoint(
         cls,
-        checkpoint_path: Union[str, Path],
-        tokenizer_path: Union[str, Path],
-        config_path: Optional[Union[str, Path]] = None,
-        device: Optional[torch.device] = None,
+        checkpoint_path: str | Path,
+        tokenizer_path: str | Path,
+        config_path: str | Path | None = None,
+        device: torch.device | None = None,
     ) -> CodeGenerator:
         """Loads model and tokenizer directly from saved checkpoint files."""
         ckpt_file = Path(checkpoint_path)
@@ -69,7 +69,7 @@ class CodeGenerator:
         top_k: int = 40,
         top_p: float = 0.9,
         add_bos: bool = True,
-        stop_strings: Optional[List[str]] = None,
+        stop_strings: list[str] | None = None,
     ) -> str:
         """Synthesizes text/code following the given prompt."""
         input_ids = self.tokenizer.encode(prompt, add_bos=add_bos)
@@ -90,7 +90,7 @@ class CodeGenerator:
         # Handle custom stop strings if provided
         if stop_strings:
             # Strip prompt prefix from output if present
-            generated_text = decoded[len(prompt):] if decoded.startswith(prompt) else decoded
+            generated_text = decoded.removeprefix(prompt)
             for stop in stop_strings:
                 if stop in generated_text:
                     generated_text = generated_text[: generated_text.index(stop)]

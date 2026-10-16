@@ -11,7 +11,6 @@ from __future__ import annotations
 import difflib
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 from susacodemind.agent.workspace import WorkspaceInspector
 from susacodemind.evaluation.sandbox import ExecutionResult, IsolatedCodeRunner
@@ -23,15 +22,15 @@ class CodeMindAgent:
 
     def __init__(
         self,
-        workspace_root: Union[str, Path],
-        generator: Optional[CodeGenerator] = None,
-        sandbox: Optional[IsolatedCodeRunner] = None,
+        workspace_root: str | Path,
+        generator: CodeGenerator | None = None,
+        sandbox: IsolatedCodeRunner | None = None,
     ) -> None:
         self.workspace = WorkspaceInspector(workspace_root)
         self.generator = generator
         self.sandbox = sandbox or IsolatedCodeRunner(default_timeout_sec=5.0)
-        self.modified_files: List[str] = []
-        self.action_history: List[str] = []
+        self.modified_files: list[str] = []
+        self.action_history: list[str] = []
 
     def inspect_workspace(self) -> str:
         """Returns visual file tree of the target project workspace."""

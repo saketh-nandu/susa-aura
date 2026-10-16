@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -75,7 +76,7 @@ def main() -> int:
         print(f"\n  [SAFETY SHUTDOWN] Cannot train profile '{model_config.profile_name}' on local laptop CPU.")
         print(f"  Required Memory: ~{res_est.estimated_total_training_ram_gb:.2f} GiB.")
         print(f"  Available RAM:   {sys_info.ram_available_gb} GiB.")
-        print(f"  Please use 'configs/smoke.yaml' locally or deploy on Google Colab GPU.")
+        print("  Please use 'configs/smoke.yaml' locally or deploy on Google Colab GPU.")
         return 1
 
     # 3. Load Sharded Binary Datasets

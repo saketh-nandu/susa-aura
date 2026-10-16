@@ -5,6 +5,7 @@ Unit tests for SUSA-1B CodeMind Deduplicator.
 from __future__ import annotations
 
 import pytest
+
 from susacodemind.data.deduplication import Deduplicator
 
 

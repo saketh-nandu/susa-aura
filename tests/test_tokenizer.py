@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+
 import pytest
-import torch
 
 from susacodemind.data.synthetic import generate_synthetic_samples
 from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer

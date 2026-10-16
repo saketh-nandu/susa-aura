@@ -5,6 +5,7 @@ Unit tests for SUSA-1B CodeMind Evaluation & Sandboxing Subsystem.
 from __future__ import annotations
 
 import pytest
+
 from susacodemind.evaluation import (
     CodeEvaluator,
     CodingBenchmarkTask,

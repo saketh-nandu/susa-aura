@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
-from susacodemind.evaluation.sandbox import ExecutionResult, IsolatedCodeRunner
+from susacodemind.evaluation.sandbox import IsolatedCodeRunner
 
 
 @dataclass
@@ -32,16 +31,16 @@ class EvalTaskResult:
     task_id: str
     syntax_valid: bool
     passed_tests: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class CodeEvaluator:
     """Benchmarking suite for measuring code intelligence."""
 
-    def __init__(self, sandbox: Optional[IsolatedCodeRunner] = None) -> None:
+    def __init__(self, sandbox: IsolatedCodeRunner | None = None) -> None:
         self.sandbox = sandbox or IsolatedCodeRunner(default_timeout_sec=3.0)
 
-    def validate_syntax(self, code_str: str) -> tuple[bool, Optional[str]]:
+    def validate_syntax(self, code_str: str) -> tuple[bool, str | None]:
         """Parses code to verify syntactic validity without executing."""
         try:
             ast.parse(code_str)
@@ -84,9 +83,9 @@ class CodeEvaluator:
 
     def run_benchmark(
         self,
-        task_solutions: Dict[str, str],
-        tasks: List[CodingBenchmarkTask],
-    ) -> Dict[str, float]:
+        task_solutions: dict[str, str],
+        tasks: list[CodingBenchmarkTask],
+    ) -> dict[str, float]:
         """Calculates pass@1 and syntax accuracy across all benchmark tasks."""
         total = len(tasks)
         syntax_passed = 0

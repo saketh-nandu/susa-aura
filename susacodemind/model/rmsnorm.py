@@ -9,7 +9,7 @@ avoiding the mean-centering overhead of standard LayerNorm:
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class RMSNorm(nn.Module):

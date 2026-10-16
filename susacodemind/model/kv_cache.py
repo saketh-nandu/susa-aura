@@ -7,7 +7,6 @@ decoding to reduce inference computational complexity from O(N^2) to O(N).
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
 import torch
 
 
@@ -15,15 +14,15 @@ class KVCache:
     """Stores past keys and values for all decoder layers."""
 
     def __init__(self) -> None:
-        self.key_cache: List[Optional[torch.Tensor]] = []
-        self.value_cache: List[Optional[torch.Tensor]] = []
+        self.key_cache: list[torch.Tensor | None] = []
+        self.value_cache: list[torch.Tensor | None] = []
 
     def update(
         self,
         key_states: torch.Tensor,
         value_states: torch.Tensor,
         layer_idx: int,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Update and return accumulated Key and Value tensors for layer_idx.
 
         Args:

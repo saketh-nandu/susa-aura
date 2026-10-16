@@ -10,7 +10,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 IGNORED_DIRS = {
     ".git",
@@ -55,12 +54,12 @@ class FileInfo:
 class WorkspaceInspector:
     """Inspects an authorized local project directory."""
 
-    def __init__(self, workspace_root: Union[str, Path]) -> None:
+    def __init__(self, workspace_root: str | Path) -> None:
         self.workspace_root = Path(workspace_root).resolve()
         if not self.workspace_root.exists() or not self.workspace_root.is_dir():
             raise NotADirectoryError(f"Workspace path does not exist: {self.workspace_root}")
 
-    def scan_files(self, max_files: int = 500) -> List[FileInfo]:
+    def scan_files(self, max_files: int = 500) -> list[FileInfo]:
         """Scans workspace directory returning a list of code and text files."""
         scanned = []
         for root, dirs, files in os.walk(self.workspace_root):

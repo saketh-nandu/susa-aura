@@ -8,12 +8,12 @@ failures on raw UTF-8, Fill-In-the-Middle (FIM) special tokens, and version trac
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional, Union
+
 import torch
 from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
 from tokenizers.processors import ByteLevel as ByteLevelProcessor
-
 
 SPECIAL_TOKENS = [
     "<|pad|>",          # ID: 0 (Padding)
@@ -29,7 +29,7 @@ SPECIAL_TOKENS = [
 class SusaTokenizer:
     """Byte-Level BPE Tokenizer for SUSA-1B CodeMind."""
 
-    def __init__(self, tokenizer: Optional[Tokenizer] = None) -> None:
+    def __init__(self, tokenizer: Tokenizer | None = None) -> None:
         self.tokenizer = tokenizer
         self.version = "1.0.0"
 
@@ -87,7 +87,7 @@ class SusaTokenizer:
 
     def train_from_files(
         self,
-        files: List[str],
+        files: list[str],
         vocab_size: int = 32000,
         min_frequency: int = 2,
     ) -> None:
@@ -108,7 +108,7 @@ class SusaTokenizer:
         text: str,
         add_bos: bool = False,
         add_eos: bool = False,
-    ) -> List[int]:
+    ) -> list[int]:
         """Encodes text to a list of token IDs, optionally wrapping with BOS / EOS."""
         if self.tokenizer is None:
             raise RuntimeError("Tokenizer has not been trained or loaded yet.")
@@ -125,7 +125,7 @@ class SusaTokenizer:
 
     def decode(
         self,
-        token_ids: Union[List[int], torch.Tensor],
+        token_ids: list[int] | torch.Tensor,
         skip_special_tokens: bool = True,
     ) -> str:
         """Decodes token IDs back into string."""
@@ -140,7 +140,7 @@ class SusaTokenizer:
 
         return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens)
 
-    def save(self, output_dir: Union[str, Path]) -> None:
+    def save(self, output_dir: str | Path) -> None:
         """Saves tokenizer model and version metadata to directory."""
         if self.tokenizer is None:
             raise RuntimeError("Cannot save an uninitialized tokenizer.")
@@ -165,7 +165,7 @@ class SusaTokenizer:
             json.dump(config_data, f, indent=2)
 
     @classmethod
-    def load(cls, model_dir: Union[str, Path]) -> SusaTokenizer:
+    def load(cls, model_dir: str | Path) -> SusaTokenizer:
         """Loads a saved tokenizer from directory."""
         dir_path = Path(model_dir)
         tokenizer_file = dir_path / "tokenizer.json"

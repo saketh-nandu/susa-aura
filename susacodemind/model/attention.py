@@ -8,10 +8,10 @@ substantially reducing KV cache memory footprint while maintaining full expressi
 from __future__ import annotations
 
 import math
-from typing import Optional, Tuple
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from susacodemind.model.config import ModelConfig
 from susacodemind.model.kv_cache import KVCache
@@ -65,9 +65,9 @@ class GroupedQueryAttention(nn.Module):
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.Tensor] = None,
-        kv_cache: Optional[KVCache] = None,
+        attention_mask: torch.Tensor | None = None,
+        position_ids: torch.Tensor | None = None,
+        kv_cache: KVCache | None = None,
     ) -> torch.Tensor:
         """Forward pass for Grouped-Query Attention.
 

@@ -5,6 +5,7 @@ Unit tests for SUSA-1B CodeMind DataCleaner and Secret Scrubbing.
 from __future__ import annotations
 
 import pytest
+
 from susacodemind.data.cleaner import DataCleaner
 
 

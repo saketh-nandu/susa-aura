@@ -5,7 +5,7 @@ Unit tests for SUSA-1B CodeMind environment and hardware diagnostics.
 from __future__ import annotations
 
 import sys
-import pytest
+
 import torch
 
 from susacodemind.utils.system_checker import SystemInfo

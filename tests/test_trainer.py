@@ -7,9 +7,9 @@ from __future__ import annotations
 import math
 import tempfile
 from pathlib import Path
+
 import pytest
 import torch
-from torch.utils.data import TensorDataset
 
 from susacodemind.model.config import ModelConfig
 from susacodemind.model.transformer import SusaCodeMind

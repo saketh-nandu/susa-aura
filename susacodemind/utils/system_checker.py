@@ -11,7 +11,7 @@ import os
 import platform
 import sys
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import psutil
 import torch
@@ -34,7 +34,7 @@ class SystemInfo:
     disk_total_gb: float
     disk_available_gb: float
     cuda_available: bool
-    gpu_devices: List[Dict[str, Any]]
+    gpu_devices: list[dict[str, Any]]
 
     @classmethod
     def inspect(cls, target_dir: str = ".") -> SystemInfo:
@@ -102,5 +102,5 @@ class SystemInfo:
         lines.append("=" * 64)
         return "\n".join(lines)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)

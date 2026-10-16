@@ -9,10 +9,9 @@ Guarantees compliance with zero-cost and local laptop safety constraints.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict
+from typing import Any
 
 from susacodemind.model.config import ModelConfig
-from susacodemind.utils.system_checker import SystemInfo
 
 
 @dataclass
@@ -36,7 +35,7 @@ class ResourceEstimate:
     def summary(self) -> str:
         lines = [
             "=" * 68,
-            f"  SUSA-1B CodeMind — Resource Feasibility Report",
+            "  SUSA-1B CodeMind — Resource Feasibility Report",
             f"  Profile: {self.profile_name} ({self.total_parameters:,} parameters)",
             "=" * 68,
             f"  Model Weights (FP32):          {self.param_memory_fp32_gb:>8.2f} GiB",
@@ -60,7 +59,7 @@ class ResourceEstimate:
             lines.append("=" * 68)
         return "\n".join(lines)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -127,7 +126,7 @@ def estimate_resources(
         )
     if not feasible_colab:
         warnings.append(
-            f"Standard training will exceed Google Colab Free T4 VRAM (15 GiB). Requires smaller batch size, micro-accumulation, or multi-GPU."
+            "Standard training will exceed Google Colab Free T4 VRAM (15 GiB). Requires smaller batch size, micro-accumulation, or multi-GPU."
         )
 
     return ResourceEstimate(

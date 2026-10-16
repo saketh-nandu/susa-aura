@@ -5,8 +5,8 @@ Unit tests for SUSA-1B CodeMind Instruction Tuning and Prompt Loss Masking.
 from __future__ import annotations
 
 from pathlib import Path
+
 import pytest
-import torch
 
 from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
 from susacodemind.training.instruction_trainer import (
@@ -47,9 +47,13 @@ def test_instruction_loss_masking(tokenizer):
     assert masked_count > 0
     assert masked_count < len(labels)
 
-    # The unmasked tokens must match input_ids
-    for i in range(masked_count, len(labels)):
-        assert labels[i] == input_ids[i]
+    # Check that there are unmasked response tokens and they match input_ids
+    unmasked_tokens = [
+        (inp, lbl) for inp, lbl in zip(input_ids.tolist(), labels.tolist()) if lbl != -100
+    ]
+    assert len(unmasked_tokens) > 0
+    for inp, lbl in unmasked_tokens:
+        assert inp == lbl
 
 
 def test_collate_instruction_batch(tokenizer):

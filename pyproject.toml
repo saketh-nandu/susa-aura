@@ -62,3 +62,22 @@ include = ["susacodemind*"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+
+[tool.ruff]
+exclude = [
+    ".venv",
+    "venv",
+    "data",
+    "checkpoints",
+    "logs",
+    "tokenizer_cache",
+    "notebooks",
+]
+line-length = 100
+
+[tool.ruff.lint]
+ignore = [
+    "BLE001",  # blind-except (intended for resilient file and git inspection)
+    "S110",    # try-except-pass (intended for optional metadata)
+    "S112",    # try-except-continue (intended for file scanning)
+]

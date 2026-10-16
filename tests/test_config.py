@@ -5,6 +5,7 @@ Unit tests for SUSA-1B CodeMind ModelConfig and resource calculations.
 from __future__ import annotations
 
 from pathlib import Path
+
 import pytest
 
 from susacodemind.model.config import ModelConfig

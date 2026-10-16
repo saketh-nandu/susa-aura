@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from susacodemind.model.attention import GroupedQueryAttention
 from susacodemind.model.config import ModelConfig
@@ -26,8 +26,8 @@ class ModelOutput:
     """Standardized output container for SusaCodeMind."""
 
     logits: torch.Tensor
-    loss: Optional[torch.Tensor] = None
-    past_key_values: Optional[KVCache] = None
+    loss: torch.Tensor | None = None
+    past_key_values: KVCache | None = None
 
 
 class TransformerBlock(nn.Module):
@@ -50,9 +50,9 @@ class TransformerBlock(nn.Module):
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.Tensor] = None,
-        kv_cache: Optional[KVCache] = None,
+        attention_mask: torch.Tensor | None = None,
+        position_ids: torch.Tensor | None = None,
+        kv_cache: KVCache | None = None,
     ) -> torch.Tensor:
         # Pre-LN Self-Attention with residual connection
         normed_attn_in = self.input_layernorm(hidden_states)
@@ -140,10 +140,10 @@ class SusaCodeMind(nn.Module):
     def forward(
         self,
         input_ids: torch.Tensor,
-        labels: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.Tensor] = None,
-        kv_cache: Optional[KVCache] = None,
+        labels: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        position_ids: torch.Tensor | None = None,
+        kv_cache: KVCache | None = None,
         use_cache: bool = False,
     ) -> ModelOutput:
         """Forward pass for next-token prediction and generation.
@@ -156,8 +156,6 @@ class SusaCodeMind(nn.Module):
             kv_cache: Optional KVCache object
             use_cache: whether to create and return a KVCache if none provided
         """
-        b_size, seq_len = input_ids.shape
-
         if use_cache and kv_cache is None:
             kv_cache = KVCache()
 
@@ -218,7 +216,7 @@ class SusaCodeMind(nn.Module):
         temperature: float = 1.0,
         top_k: int = 50,
         top_p: float = 0.9,
-        eos_token_id: Optional[int] = None,
+        eos_token_id: int | None = None,
         use_cache: bool = True,
     ) -> torch.Tensor:
         """Autoregressive text generation with temperature, top-k, and nucleus (top-p) sampling.
