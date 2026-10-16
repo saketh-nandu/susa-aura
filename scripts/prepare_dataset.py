@@ -66,9 +66,20 @@ def main() -> int:
     else:
         in_path = Path(args.input_dir)
         print(f"\n  [1/4] Scanning files from: {in_path}...")
+        binary_exts = {
+            ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".pdf",
+            ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z", ".bin", ".pt",
+            ".pyc", ".pyd", ".so", ".dylib", ".dll", ".exe", ".whl",
+            ".woff", ".woff2", ".ttf", ".eot", ".svg", ".idx", ".pack",
+            ".rev", ".o", ".a",
+        }
         raw_samples = []
         for p in in_path.glob("**/*"):
-            if p.is_file() and not p.name.startswith("."):
+            if (
+                p.is_file()
+                and not any(part.startswith(".") for part in p.parts)
+                and p.suffix.lower() not in binary_exts
+            ):
                 try:
                     raw_samples.append(p.read_text(encoding="utf-8", errors="ignore"))
                 except Exception:

@@ -73,3 +73,23 @@ def test_tokenizer_save_and_load(trained_tokenizer):
         orig_enc = trained_tokenizer.encode(test_text)
         loaded_enc = loaded_tok.encode(test_text)
         assert orig_enc == loaded_enc
+
+
+def test_tokenizer_train_from_files_resilient_utf8():
+    """Verify train_from_files safely handles non-UTF-8 bytes and corrupted files without crashing."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        # 1. Clean valid Python file
+        f_clean = tmp_path / "clean.py"
+        f_clean.write_text("def add(a: int, b: int) -> int:\n    return a + b\n", encoding="utf-8")
+
+        # 2. File containing non-UTF-8 raw binary bytes (e.g. latin-1 / invalid bytes)
+        f_invalid = tmp_path / "corrupted.py"
+        f_invalid.write_bytes(b"# Test comment \xff\xfe\xfa\nclass Foo:\n    pass\n")
+
+        tok = SusaTokenizer.create_untrained()
+        # Must train without raising "stream did not contain valid UTF-8"
+        tok.train_from_files([str(f_clean), str(f_invalid)], vocab_size=512, min_frequency=1)
+        assert tok.vocab_size >= 256
+        encoded = tok.encode("def add(x, y): return x + y")
+        assert len(encoded) > 0

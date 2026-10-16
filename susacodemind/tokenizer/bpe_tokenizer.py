@@ -91,17 +91,20 @@ class SusaTokenizer:
         vocab_size: int = 32000,
         min_frequency: int = 2,
     ) -> None:
-        """Trains the BPE tokenizer directly from a list of file paths."""
-        instance = self.create_untrained()
-        trainer = trainers.BpeTrainer(
-            vocab_size=vocab_size,
-            min_frequency=min_frequency,
-            special_tokens=SPECIAL_TOKENS,
-            initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
-        )
+        """Trains the BPE tokenizer directly from a list of file paths with resilient UTF-8 handling."""
+        def file_text_iterator():
+            for fpath in files:
+                try:
+                    p = Path(fpath)
+                    if not p.is_file():
+                        continue
+                    text = p.read_text(encoding="utf-8", errors="replace")
+                    if text.strip():
+                        yield text
+                except Exception:
+                    continue
 
-        instance.tokenizer.train(files, trainer=trainer)
-        self.tokenizer = instance.tokenizer
+        self.train_from_iterator(file_text_iterator(), vocab_size=vocab_size, min_frequency=min_frequency)
 
     def encode(
         self,

@@ -146,6 +146,9 @@ def clone_popular_repos(target_dir: Path) -> int:
                     check=True,
                     capture_output=True,
                 )
+                git_dir = repo_dest / ".git"
+                if git_dir.exists():
+                    shutil.rmtree(git_dir, ignore_errors=True)
             except Exception as e:
                 print(f"  [GitHub] Warning: Cloning {name} failed: {e}")
                 continue

@@ -50,8 +50,21 @@ def main() -> int:
         if not in_path.exists():
             print(f"  [ERROR] Input path does not exist: {in_path}", file=sys.stderr)
             return 1
-        files = [str(p) for p in in_path.glob("**/*") if p.is_file() and not p.name.startswith(".")]
-        print(f"  Found {len(files)} files in {in_path}. Training BPE...")
+        BINARY_EXTENSIONS = {
+            ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".pdf",
+            ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z", ".bin", ".pt",
+            ".pyc", ".pyd", ".so", ".dylib", ".dll", ".exe", ".whl",
+            ".woff", ".woff2", ".ttf", ".eot", ".svg", ".idx", ".pack",
+            ".rev", ".o", ".a",
+        }
+        files = [
+            str(p)
+            for p in in_path.glob("**/*")
+            if p.is_file()
+            and not any(part.startswith(".") for part in p.parts)
+            and p.suffix.lower() not in BINARY_EXTENSIONS
+        ]
+        print(f"  Found {len(files)} clean code files in {in_path}. Training BPE...")
         tokenizer.train_from_files(files, vocab_size=args.vocab_size, min_frequency=2)
 
     # Save tokenizer
