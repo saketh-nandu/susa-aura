@@ -97,11 +97,14 @@ pip install -e ".[dev]"
 python scripts/verify_env.py
 
 # Inspect parameter breakdown and memory estimates
-python scripts/count_params.py configs/smoke.yaml
-python scripts/count_params.py configs/target_1b.yaml
+python scripts/count_params.py --config configs/smoke.yaml
+python scripts/count_params.py --config configs/target_1b.yaml
 
-# Run unit test suite
+# Run unit test suite (49 unit tests, 86% coverage)
 pytest tests/
+
+# Zero-cost dataset acquisition (Python standard library & curated coding instructions)
+python scripts/download_dataset.py --source stdlib --generate-instructions
 ```
 
 ---

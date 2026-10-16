@@ -74,10 +74,8 @@ class DataCleaner:
         cleaned_text = text
 
         for pattern, replacement in SECRET_PATTERNS:
-            matches = len(pattern.findall(cleaned_text))
-            if matches > 0:
-                cleaned_text = pattern.sub(replacement, cleaned_text)
-                redacted_count += matches
+            cleaned_text, matches = pattern.subn(replacement, cleaned_text)
+            redacted_count += matches
 
         return cleaned_text, redacted_count
 

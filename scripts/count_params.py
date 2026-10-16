@@ -22,12 +22,18 @@ from susacodemind.utils.resource_estimator import estimate_resources
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Calculate exact parameter counts and memory estimates.")
-    parser.add_argument("config_file", type=str, help="Path to the model YAML configuration.")
+    parser.add_argument("config_file", nargs="?", default=None, type=str, help="Path to the model YAML configuration.")
+    parser.add_argument("--config", "-c", type=str, default=None, help="Path to the model YAML configuration.")
     parser.add_argument("--batch-size", type=int, default=2, help="Hypothetical batch size for activation memory.")
     parser.add_argument("--seq-len", type=int, default=1024, help="Sequence length for memory calculation.")
 
     args = parser.parse_args()
-    config_path = Path(args.config_file)
+    config_target = args.config or args.config_file
+    if not config_target:
+        parser.print_help()
+        return 1
+
+    config_path = Path(config_target)
     if not config_path.exists():
         print(f"Error: Config file not found at {config_path}", file=sys.stderr)
         return 1
