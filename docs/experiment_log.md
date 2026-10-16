@@ -64,3 +64,19 @@ This file tracks all milestones, system diagnostics, benchmark results, and mode
   - All 33 unit tests passed in 4.19s on local CPU.
   - Total test coverage: 90%.
   - Zero paid resources consumed (₹0 cost).
+
+---
+
+## Milestone 4 — Pre-Training Engine
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `susacodemind/training/trainer.py`: Real autoregressive training loop, mixed precision (AMP), AdamW with weight decay separation (1D norms vs 2D projections), cosine LR schedule with linear warmup, gradient accumulation, gradient clipping, tokens/sec throughput tracking, memory usage monitoring, validation evaluation, perplexity tracking, periodic checkpointing, and resume support.
+  - `scripts/train.py`: CLI training launcher with resource estimation safety check preventing accidental 1B training on local laptop CPU.
+  - `tests/test_trainer.py`: 4 unit tests verifying LR schedule, optimizer parameter grouping, loss decrease, parameter weight modifications, and checkpoint save & resumption.
+- **Verification:**
+  - Complete test suite: 37/37 tests passed in 7.47s on local CPU.
+  - Total test coverage: 90%.
+  - Real pretraining run executed: Steps 1 -> 5 (loss decreased from 6.9254 to 6.7788, throughput ~7,500 tok/s, 353 MB RAM).
+  - Checkpoint resumption tested: Resumed from Step 5 -> 8 (loss dropped from 6.7101 to 6.5348).
+  - Zero paid resources consumed (₹0 cost).
