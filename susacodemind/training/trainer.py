@@ -42,6 +42,8 @@ class TrainingConfig:
     save_interval: int = 10
     checkpoint_dir: str = "checkpoints"
     log_interval: int = 1
+    gradient_checkpointing: bool = False
+    use_8bit_adam: bool = False
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TrainingConfig:
@@ -62,6 +64,8 @@ class TrainingConfig:
             "save_interval",
             "checkpoint_dir",
             "log_interval",
+            "gradient_checkpointing",
+            "use_8bit_adam",
         }
         filtered = {k: v for k, v in train_data.items() if k in valid_keys}
         return cls(**filtered)
@@ -89,6 +93,9 @@ class Trainer:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model = model.to(self.device)
+        if getattr(self.config, "gradient_checkpointing", False):
+            self.model.gradient_checkpointing = True
+
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
 
@@ -152,13 +159,32 @@ class Trainer:
             {"params": no_decay_params, "weight_decay": 0.0},
         ]
 
-        # Standard modern AdamW: beta1=0.9, beta2=0.95, eps=1e-8
-        optimizer = torch.optim.AdamW(
-            optim_groups,
-            lr=self.config.lr,
-            betas=(0.9, 0.95),
-            eps=1e-8,
-        )
+        use_8bit = False
+        if getattr(self.config, "use_8bit_adam", False) or (self.model.count_parameters() > 300_000_000 and self.device.type == "cuda"):
+            try:
+                import bitsandbytes as bnb
+                if self.device.type == "cuda":
+                    use_8bit = True
+            except ImportError:
+                use_8bit = False
+
+        if use_8bit:
+            import bitsandbytes as bnb
+            print("  [Memory Engine] Utilizing bitsandbytes 8-bit AdamW (reduces optimizer memory by 75% for 1B scaling).")
+            optimizer = bnb.optim.AdamW8bit(
+                optim_groups,
+                lr=self.config.lr,
+                betas=(0.9, 0.95),
+                eps=1e-8,
+            )
+        else:
+            # Standard modern AdamW: beta1=0.9, beta2=0.95, eps=1e-8
+            optimizer = torch.optim.AdamW(
+                optim_groups,
+                lr=self.config.lr,
+                betas=(0.9, 0.95),
+                eps=1e-8,
+            )
         return optimizer
 
     def get_lr(self, step: int) -> float:

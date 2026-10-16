@@ -69,6 +69,7 @@ def estimate_resources(
     seq_len: int = 1024,
     mixed_precision: bool = True,
     gradient_checkpointing: bool = True,
+    use_8bit_adam: bool = False,
 ) -> ResourceEstimate:
     """Calculate exact memory and hardware requirements for a given configuration."""
     param_stats = config.calculate_exact_parameters()
@@ -80,10 +81,11 @@ def estimate_resources(
     param_fp16_gb = (n_params * 2) / (1024**3)
     active_param_gb = param_fp16_gb if mixed_precision else param_fp32_gb
 
-    # 2. Optimizer Memory (AdamW)
-    # Master FP32 weights (4 bytes) + 1st moment (4 bytes) + 2nd moment (4 bytes) = 12 bytes/param (mixed precision)
-    # Or 8 bytes/param in pure FP32 (2 moments * 4 bytes)
-    optimizer_bytes_per_param = 12 if mixed_precision else 8
+    # 2. Optimizer Memory (AdamW vs 8-bit AdamW)
+    if use_8bit_adam:
+        optimizer_bytes_per_param = 4 if mixed_precision else 2
+    else:
+        optimizer_bytes_per_param = 12 if mixed_precision else 8
     optimizer_gb = (n_params * optimizer_bytes_per_param) / (1024**3)
 
     # 3. Gradients

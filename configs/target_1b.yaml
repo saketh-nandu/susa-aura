@@ -19,14 +19,15 @@ model:
   dropout: 0.0
 
 training:
-  batch_size: 2
-  grad_accum_steps: 16     # Effective batch size: 32 sequences (65,536 tokens per step)
+  batch_size: 1            # Micro-batch size of 1 for 1B parameter memory fitting
+  grad_accum_steps: 16     # Effective batch size: 16 sequences (16,384 tokens per optimizer step)
   lr: 0.0003
   min_lr: 0.00003
-  warmup_steps: 2000
+  warmup_steps: 500
   max_steps: 100000
   weight_decay: 0.1
   grad_clip: 1.0
-  mixed_precision: "bf16"  # BF16 or FP16 when supported on GPU
+  mixed_precision: "fp16"  # Fast FP16 tensor cores on NVIDIA T4
   seed: 42
-  gradient_checkpointing: true
+  gradient_checkpointing: true # Essential for 1B model: saves 70% activation memory
+  use_8bit_adam: true          # Reduces optimizer states from 11.28 GB to 2.82 GB
