@@ -80,3 +80,16 @@ This file tracks all milestones, system diagnostics, benchmark results, and mode
   - Real pretraining run executed: Steps 1 -> 5 (loss decreased from 6.9254 to 6.7788, throughput ~7,500 tok/s, 353 MB RAM).
   - Checkpoint resumption tested: Resumed from Step 5 -> 8 (loss dropped from 6.7101 to 6.5348).
   - Zero paid resources consumed (₹0 cost).
+
+---
+
+## Milestone 5 — GitHub & Google Colab Integration
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `notebooks/colab_train.ipynb`: Fully automated 11-step interactive Colab training runner supporting runtime hardware detection, profile selection, dataset preparation, pretraining execution, Google Drive checkpoint synchronization, and recovery manifest generation.
+  - `scripts/sync_checkpoints.py`: Persistent storage synchronizer with Git commit SHA tracking and JSON manifest creation.
+- **Verification:**
+  - Tested checkpoint synchronization and manifest export.
+  - Full test suite verified (37/37 passed, 90% coverage).
+  - Zero paid resources consumed (₹0 cost).

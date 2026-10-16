@@ -112,7 +112,7 @@ pytest tests/
 - [x] **Milestone 2 — Tiny Model Implementation:** Full decoder-only Transformer with SwiGLU, RMSNorm, RoPE, and GQA tested on CPU.
 - [x] **Milestone 3 — Data & Tokenizer:** Tokenizer training pipeline with secret filtering, deduplication, and license tracking.
 - [x] **Milestone 4 — Training Engine:** Next-token prediction, gradient accumulation, mixed precision, and checkpoint resumption.
-- [ ] **Milestone 5 — GitHub & Google Colab Integration:** Cloud replication and Drive checkpoint sync.
+- [x] **Milestone 5 — GitHub & Google Colab Integration:** Cloud replication and Drive checkpoint sync.
 - [ ] **Milestone 6 — GPU Benchmarking:** Measure tokens/sec and determine feasible training scale on free Colab tier.
 - [ ] **Milestone 7 — Pretraining Runs:** Scaled pretraining experiments with transparent loss curves and checkpoints.
 - [ ] **Milestone 8 — Instruction Tuning & Evaluation:** Supervised fine-tuning for code instruction following and sandboxed benchmarking.
