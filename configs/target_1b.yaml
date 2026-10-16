@@ -1,0 +1,32 @@
+# SUSA-1B CodeMind — Target 1B Model Configuration
+# Full architecture target: ~1.01 Billion parameters.
+# Enabled only after resource validation, benchmark checks, and memory profiling.
+
+profile_name: "target_1b"
+description: "The primary 1-billion parameter decoder-only Transformer for SUSA-1B CodeMind."
+
+model:
+  vocab_size: 32000
+  max_seq_len: 2048
+  d_model: 2048
+  n_heads: 16
+  n_kv_heads: 8            # Grouped-Query Attention (GQA) for memory-efficient KV cache
+  n_layers: 20             # 20 Transformer decoder layers (~1.009B total parameters)
+  d_ff: 5632               # SwiGLU hidden dimension (~8/3 * d_model rounded to multiple of 256)
+  norm_eps: 1.0e-5
+  rope_theta: 10000.0
+  tie_word_embeddings: true # Tied input embeddings and output lm_head
+  dropout: 0.0
+
+training:
+  batch_size: 2
+  grad_accum_steps: 16     # Effective batch size: 32 sequences (65,536 tokens per step)
+  lr: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 2000
+  max_steps: 100000
+  weight_decay: 0.1
+  grad_clip: 1.0
+  mixed_precision: "bf16"  # BF16 or FP16 when supported on GPU
+  seed: 42
+  gradient_checkpointing: true

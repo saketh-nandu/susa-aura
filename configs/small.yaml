@@ -1,0 +1,31 @@
+# SUSA-1B CodeMind — Small Experiment Configuration
+# Intended for fast GPU experiments, memory baseline, and initial training loops.
+# Parameter count: ~40M parameters.
+
+profile_name: "small"
+description: "Small profile for rapid training experiments on free GPU tiers (e.g., Colab T4/V100)."
+
+model:
+  vocab_size: 32000
+  max_seq_len: 512
+  d_model: 512
+  n_heads: 8
+  n_kv_heads: 4
+  n_layers: 6
+  d_ff: 1408
+  norm_eps: 1.0e-5
+  rope_theta: 10000.0
+  tie_word_embeddings: true
+  dropout: 0.0
+
+training:
+  batch_size: 8
+  grad_accum_steps: 4
+  lr: 0.0006
+  min_lr: 0.00006
+  warmup_steps: 500
+  max_steps: 10000
+  weight_decay: 0.1
+  grad_clip: 1.0
+  mixed_precision: "fp16"
+  seed: 42

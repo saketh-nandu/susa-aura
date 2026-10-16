@@ -1,0 +1,2 @@
+# This directory stores local datasets and processed binary shards.
+# Datasets are strictly excluded from Git via .gitignore.

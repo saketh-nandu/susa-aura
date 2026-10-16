@@ -1,0 +1,2 @@
+# This directory stores model checkpoints (.pt / .bin).
+# Checkpoint files are intentionally excluded from Git via .gitignore.

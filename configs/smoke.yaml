@@ -1,0 +1,31 @@
+# SUSA-1B CodeMind — Smoke Test Configuration
+# Intended for fast local CPU unit testing, forward/backward pass validation, and CI.
+# Parameter count: ~300k parameters.
+
+profile_name: "smoke"
+description: "Ultra-compact profile for rapid CPU verification, functional tests, and pipeline sanity."
+
+model:
+  vocab_size: 1024
+  max_seq_len: 128
+  d_model: 64
+  n_heads: 4
+  n_kv_heads: 2
+  n_layers: 2
+  d_ff: 176
+  norm_eps: 1.0e-5
+  rope_theta: 10000.0
+  tie_word_embeddings: true
+  dropout: 0.0
+
+training:
+  batch_size: 2
+  grad_accum_steps: 1
+  lr: 0.001
+  min_lr: 0.0001
+  warmup_steps: 5
+  max_steps: 20
+  weight_decay: 0.01
+  grad_clip: 1.0
+  mixed_precision: "no" # CPU
+  seed: 42
