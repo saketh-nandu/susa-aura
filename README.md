@@ -109,7 +109,7 @@ pytest tests/
 ## 5. Development Milestones
 
 - [x] **Milestone 1 — Repository Foundation:** Project structure, configuration validator, system checker, resource estimator, test suite, and Colab starter.
-- [ ] **Milestone 2 — Tiny Model Implementation:** Full decoder-only Transformer with SwiGLU, RMSNorm, RoPE, and GQA tested on CPU.
+- [x] **Milestone 2 — Tiny Model Implementation:** Full decoder-only Transformer with SwiGLU, RMSNorm, RoPE, and GQA tested on CPU.
 - [ ] **Milestone 3 — Data & Tokenizer:** Tokenizer training pipeline with secret filtering, deduplication, and license tracking.
 - [ ] **Milestone 4 — Training Engine:** Next-token prediction, gradient accumulation, mixed precision, and checkpoint resumption.
 - [ ] **Milestone 5 — GitHub & Google Colab Integration:** Cloud replication and Drive checkpoint sync.

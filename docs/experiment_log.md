@@ -26,3 +26,22 @@ This file tracks all milestones, system diagnostics, benchmark results, and mode
   - All 9 unit tests passed in 3.41s on local CPU.
   - Resource estimator confirmed local laptop safety boundaries and blocked inadvertent 1B model training on CPU.
   - Zero paid resources consumed (₹0 cost).
+
+---
+
+## Milestone 2 — Tiny Model Implementation
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `susacodemind/model/rmsnorm.py`: Root Mean Square Layer Normalization with float32 stabilization.
+  - `susacodemind/model/rope.py`: Rotary Position Embeddings with precomputed/dynamic cache.
+  - `susacodemind/model/swiglu.py`: Swish-Gated Linear Unit feed-forward network.
+  - `susacodemind/model/attention.py`: Grouped-Query Attention (GQA) with KV head sharing, RoPE, and SDPA integration.
+  - `susacodemind/model/kv_cache.py`: Dynamic multi-layer Key-Value caching for $O(N)$ inference.
+  - `susacodemind/model/transformer.py`: Full `SusaCodeMind` decoder-only Transformer, weight tying, gradient scaling, next-token prediction loss, and autoregressive generation (greedy + temperature + top-k + top-p).
+  - `scripts/smoke_test_model.py`: Interactive verification demo.
+  - `tests/test_model.py`: 9 new unit tests verifying RMSNorm, RoPE, SwiGLU, GQA, parameter matching, loss calculation, backward pass gradients, generation, checkpoint save/load, and tied weights.
+- **Verification:**
+  - Complete test suite: 18/18 tests passed in 4.05s on local CPU.
+  - Total test coverage: 89%.
+  - Zero paid resources consumed (₹0 cost).
