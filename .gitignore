@@ -76,4 +76,6 @@ runs/
 *.tfevents.*
 
 # Tokenizer models (keep only small sample/smoke tokenizers if committed)
-tokenizer_cache/
+tokenizer_cache/*
+!tokenizer_cache/smoke/
+!tokenizer_cache/smoke/**

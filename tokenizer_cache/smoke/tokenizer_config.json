@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "vocab_size": 790,
+  "special_tokens": [
+    "<|pad|>",
+    "<|bos|>",
+    "<|eos|>",
+    "<|unk|>",
+    "<|code_prefix|>",
+    "<|code_middle|>",
+    "<|code_suffix|>"
+  ],
+  "pad_id": 0,
+  "bos_id": 1,
+  "eos_id": 2,
+  "unk_id": 3
+}

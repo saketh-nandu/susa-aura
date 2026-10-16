@@ -118,8 +118,8 @@ def test_training_loss_and_parameter_update(smoke_model):
     assert trainer.global_step == 15
 
     # 2. Assert model parameters actually changed
-    final_weight = smoke_model.tok_embeddings.weight.detach()
-    diff = torch.norm(final_weight - initial_weight).item()
+    final_weight = smoke_model.tok_embeddings.weight.detach().cpu()
+    diff = torch.norm(final_weight - initial_weight.cpu()).item()
     assert diff > 1e-4, f"Parameters did not update! Weight diff: {diff}"
 
     # 3. Assert initial loss vs final loss

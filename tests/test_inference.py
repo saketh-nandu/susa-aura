@@ -18,11 +18,24 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent / "configs"
 TOKENIZER_DIR = Path(__file__).resolve().parent.parent / "tokenizer_cache" / "smoke"
 
 
+def get_or_create_smoke_tokenizer() -> SusaTokenizer:
+    if (TOKENIZER_DIR / "tokenizer.json").exists():
+        return SusaTokenizer.load(TOKENIZER_DIR)
+    from susacodemind.data.synthetic import generate_synthetic_samples
+
+    tok = SusaTokenizer.create_untrained()
+    samples = generate_synthetic_samples(count=10)
+    tok.train_from_iterator([s.content for s in samples], vocab_size=256, min_frequency=1)
+    TOKENIZER_DIR.mkdir(parents=True, exist_ok=True)
+    tok.save(TOKENIZER_DIR)
+    return tok
+
+
 @pytest.fixture
 def smoke_generator() -> CodeGenerator:
     cfg = ModelConfig.from_yaml(CONFIG_DIR / "smoke.yaml")
     model = SusaCodeMind(cfg)
-    tokenizer = SusaTokenizer.load(TOKENIZER_DIR)
+    tokenizer = get_or_create_smoke_tokenizer()
     return CodeGenerator(model=model, tokenizer=tokenizer, device=torch.device("cpu"))
 
 

@@ -18,9 +18,22 @@ from susacodemind.training.instruction_trainer import (
 TOKENIZER_DIR = Path(__file__).resolve().parent.parent / "tokenizer_cache" / "smoke"
 
 
+def get_or_create_smoke_tokenizer() -> SusaTokenizer:
+    if (TOKENIZER_DIR / "tokenizer.json").exists():
+        return SusaTokenizer.load(TOKENIZER_DIR)
+    from susacodemind.data.synthetic import generate_synthetic_samples
+
+    tok = SusaTokenizer.create_untrained()
+    samples = generate_synthetic_samples(count=10)
+    tok.train_from_iterator([s.content for s in samples], vocab_size=256, min_frequency=1)
+    TOKENIZER_DIR.mkdir(parents=True, exist_ok=True)
+    tok.save(TOKENIZER_DIR)
+    return tok
+
+
 @pytest.fixture
 def tokenizer() -> SusaTokenizer:
-    return SusaTokenizer.load(TOKENIZER_DIR)
+    return get_or_create_smoke_tokenizer()
 
 
 def test_instruction_loss_masking(tokenizer):
