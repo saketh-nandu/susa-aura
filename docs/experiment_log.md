@@ -45,3 +45,22 @@ This file tracks all milestones, system diagnostics, benchmark results, and mode
   - Complete test suite: 18/18 tests passed in 4.05s on local CPU.
   - Total test coverage: 89%.
   - Zero paid resources consumed (₹0 cost).
+
+---
+
+## Milestone 3 — Data Pipeline & Tokenizer
+- **Date:** October 16, 2026
+- **Status:** COMPLETED
+- **Implemented Modules:**
+  - `susacodemind/data/cleaner.py`: Automated scanning and redaction of secrets (GitHub PATs, AWS access keys, RSA private keys, hardcoded passwords) and NFKC normalization.
+  - `susacodemind/data/deduplication.py`: Exact SHA-256 and MinHash $k$-shingle near-deduplication to eliminate cloned boilerplate code.
+  - `susacodemind/data/dataset.py`: Zero-RAM streaming binary shard builder and `MemoryMappedPretrainingDataset` for fast PyTorch DataLoader iteration.
+  - `susacodemind/data/synthetic.py`: Synthetic multi-language test corpus generator strictly marked for pipeline testing.
+  - `susacodemind/tokenizer/bpe_tokenizer.py`: Byte-Level BPE tokenizer with FIM (Fill-in-the-Middle) special tokens, 100% loss-free roundtrip fidelity, and versioning.
+  - `scripts/train_tokenizer.py`: CLI runner to train BPE tokenizers from raw code or memory streams.
+  - `scripts/prepare_dataset.py`: CLI runner for end-to-end cleaning, deduplication, train/val splitting, and streaming binary tokenization.
+  - `tests/test_data_cleaner.py`, `tests/test_deduplication.py`, `tests/test_tokenizer.py`, `tests/test_dataset_pipeline.py`: 15 new unit tests.
+- **Verification:**
+  - All 33 unit tests passed in 4.19s on local CPU.
+  - Total test coverage: 90%.
+  - Zero paid resources consumed (₹0 cost).

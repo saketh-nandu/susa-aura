@@ -1,9 +1,19 @@
 """
 SUSA-1B CodeMind — Dataset Ingestion & Preprocessing Subsystem.
-
-Provides streaming and incremental preprocessing for code and technical text,
-including secret filtering, min-hash deduplication, license compliance tracking,
-and train/val/test splits without repository leakage.
 """
 
-__all__ = []
+from susacodemind.data.cleaner import DataCleaner, FilterResult
+from susacodemind.data.deduplication import Deduplicator, compute_sha256
+from susacodemind.data.dataset import MemoryMappedPretrainingDataset, build_binary_dataset
+from susacodemind.data.synthetic import SyntheticSample, generate_synthetic_samples
+
+__all__ = [
+    "DataCleaner",
+    "FilterResult",
+    "Deduplicator",
+    "compute_sha256",
+    "MemoryMappedPretrainingDataset",
+    "build_binary_dataset",
+    "SyntheticSample",
+    "generate_synthetic_samples",
+]
