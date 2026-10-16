@@ -98,6 +98,10 @@ POPULAR_REPOS = [
     ("requests", "https://github.com/psf/requests.git"),
     ("flask", "https://github.com/pallets/flask.git"),
     ("click", "https://github.com/pallets/click.git"),
+    ("fastapi", "https://github.com/tiangolo/fastapi.git"),
+    ("jinja", "https://github.com/pallets/jinja.git"),
+    ("rich", "https://github.com/Textualize/rich.git"),
+    ("python-patterns", "https://github.com/faif/python-patterns.git"),
 ]
 
 
@@ -252,8 +256,8 @@ def main() -> int:
     parser.add_argument(
         "--hf-samples",
         type=int,
-        default=1500,
-        help="Number of Python samples to stream from Hugging Face.",
+        default=5000,
+        help="Number of Python samples to stream from Hugging Face (default: 5000).",
     )
     parser.add_argument(
         "--generate-instructions",
@@ -286,7 +290,7 @@ def main() -> int:
 
     if args.generate_instructions or not Path(args.instructions_file).exists():
         write_coding_instructions(Path(args.instructions_file))
-        fetch_huggingface_instructions(Path(args.instructions_file), max_samples=300)
+        fetch_huggingface_instructions(Path(args.instructions_file), max_samples=1000)
 
     print("\n" + "=" * 70)
     print(f"  STATUS: DATASET ACQUISITION COMPLETE ({total_files:,} code files ready)")
