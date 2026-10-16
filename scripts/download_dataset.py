@@ -4,13 +4,14 @@ SUSA-1B CodeMind — Real Dataset Acquisition & Ingestion Tool.
 
 Acquires clean, zero-cost, permitted code datasets for pretraining and instruction tuning:
 1. Python Standard Library (`stdlib`): Hundreds of PEP8-compliant Python modules from active environment.
-2. TheAlgorithms Python (`algorithms`): 1,600+ algorithms, data structures, and typed implementations.
-3. Expanded Synthetic Corpus (`synthetic`): Multi-language algorithmic samples.
-4. Curated Coding Instruction Pairs (`instructions`): 50+ diverse coding SFT tasks.
+2. GitHub Popular Repositories (`github`): TheAlgorithms/Python, psf/requests, pallets/flask, pallets/click.
+3. Hugging Face Stream (`huggingface`): Streams thousands of real Python files from bigcode/the-stack-smol.
+4. Curated & Online Coding SFT Instructions (`instructions`): Real coding tasks and solutions.
 
 Usage:
     python scripts/download_dataset.py --source stdlib --output-dir data/raw_code
-    python scripts/download_dataset.py --source algorithms --output-dir data/raw_code
+    python scripts/download_dataset.py --source github --output-dir data/raw_code
+    python scripts/download_dataset.py --source huggingface --hf-samples 2000 --output-dir data/raw_code
     python scripts/download_dataset.py --source all --output-dir data/raw_code
     python scripts/download_dataset.py --generate-instructions --instructions-file data/coding_instructions.jsonl
 """
@@ -92,6 +93,13 @@ CURATED_INSTRUCTIONS = [
     }
 ]
 
+POPULAR_REPOS = [
+    ("TheAlgorithms", "https://github.com/TheAlgorithms/Python.git"),
+    ("requests", "https://github.com/psf/requests.git"),
+    ("flask", "https://github.com/pallets/flask.git"),
+    ("click", "https://github.com/pallets/click.git"),
+]
+
 
 def extract_stdlib_code(target_dir: Path) -> int:
     """Copies clean, non-test standard library Python modules to target directory."""
@@ -102,7 +110,6 @@ def extract_stdlib_code(target_dir: Path) -> int:
 
     copied = 0
     for p in stdlib_path.glob("**/*.py"):
-        # Filter test directories and private caches
         parts_lower = [part.lower() for part in p.parts]
         if any(skip in parts_lower for skip in ("test", "tests", "idle_test", "__pycache__", "site-packages", "dist-packages")):
             continue
@@ -119,29 +126,102 @@ def extract_stdlib_code(target_dir: Path) -> int:
     return copied
 
 
-def clone_algorithms_repo(target_dir: Path) -> int:
-    """Clones TheAlgorithms/Python repository containing thousands of algorithm implementations."""
-    dest = target_dir / "TheAlgorithms"
-    if dest.exists():
-        print(f"  [algorithms] Destination {dest} already exists. Pulling latest...")
-        try:
-            subprocess.run(["git", "-C", str(dest), "pull"], check=True, capture_output=True)
-        except Exception:
-            pass
-    else:
-        print(f"  [algorithms] Cloning https://github.com/TheAlgorithms/Python.git into {dest}...")
-        try:
-            subprocess.run(
-                ["git", "clone", "--depth", "1", "https://github.com/TheAlgorithms/Python.git", str(dest)],
-                check=True,
-                capture_output=True,
-            )
-        except Exception as e:
-            print(f"  [algorithms] Warning: Git clone failed ({e}). Proceeding with available files.")
-            return 0
+def clone_popular_repos(target_dir: Path) -> int:
+    """Clones popular open-source Python repositories for high-quality pretraining code."""
+    repos_dir = target_dir / "github_repos"
+    repos_dir.mkdir(parents=True, exist_ok=True)
+    total_files = 0
 
-    count = len(list(dest.glob("**/*.py")))
-    print(f"  [algorithms] Ingested {count} Python algorithm files in {dest}")
+    for name, url in POPULAR_REPOS:
+        repo_dest = repos_dir / name
+        if not repo_dest.exists():
+            print(f"  [GitHub] Cloning {name} from {url}...")
+            try:
+                subprocess.run(
+                    ["git", "clone", "--depth", "1", url, str(repo_dest)],
+                    check=True,
+                    capture_output=True,
+                )
+            except Exception as e:
+                print(f"  [GitHub] Warning: Cloning {name} failed: {e}")
+                continue
+        else:
+            print(f"  [GitHub] {name} already exists at {repo_dest}")
+
+        py_count = len(list(repo_dest.glob("**/*.py")))
+        print(f"        Found {py_count} Python files in {name}")
+        total_files += py_count
+
+    return total_files
+
+
+def fetch_huggingface_code(target_dir: Path, max_samples: int = 1500) -> int:
+    """Streams permissive Python code samples from Hugging Face bigcode/the-stack-smol."""
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        print("  [HuggingFace] `datasets` library not installed. Run `pip install datasets` to enable streaming.")
+        return 0
+
+    dest = target_dir / "huggingface_stack"
+    dest.mkdir(parents=True, exist_ok=True)
+    print(f"  [HuggingFace] Streaming up to {max_samples:,} Python code files from `bigcode/the-stack-smol`...")
+
+    count = 0
+    try:
+        ds = load_dataset("bigcode/the-stack-smol", data_dir="data/python", split="train", streaming=True)
+        for idx, item in enumerate(ds):
+            if count >= max_samples:
+                break
+            content = item.get("content", "")
+            if len(content.strip()) > 50:
+                file_path = dest / f"hf_sample_{count}.py"
+                file_path.write_text(content, encoding="utf-8", errors="ignore")
+                count += 1
+                if count % 250 == 0:
+                    print(f"        Streamed {count}/{max_samples} files from Hugging Face...")
+    except Exception as e:
+        print(f"  [HuggingFace] Note: Stream completed or ended ({e}). Kept {count} files.")
+
+    print(f"  [HuggingFace] Ingested {count} real Python files to {dest}")
+    return count
+
+
+def fetch_huggingface_instructions(output_file: Path, max_samples: int = 500) -> int:
+    """Streams real coding instruction pairs from Hugging Face."""
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        return 0
+
+    print(f"  [HuggingFace SFT] Streaming up to {max_samples} coding instruction pairs...")
+    count = 0
+    instructions = []
+    try:
+        ds = load_dataset("iamtarun/python_code_instructions_18k_alpaca", split="train", streaming=True)
+        for item in ds:
+            if count >= max_samples:
+                break
+            inst = item.get("instruction", "")
+            inp = item.get("input", "")
+            out = item.get("output", "")
+            if inst and out:
+                full_inst = f"{inst}\n{inp}".strip() if inp else inst
+                instructions.append({
+                    "instruction": full_inst,
+                    "response": out,
+                    "system_prompt": "You are SUSA CodeMind, an expert software engineer and AI coding assistant."
+                })
+                count += 1
+    except Exception:
+        pass
+
+    if instructions:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("a", encoding="utf-8") as f:
+            for item in instructions:
+                f.write(json.dumps(item) + "\n")
+        print(f"  [HuggingFace SFT] Added {count} real coding instructions to {output_file}")
     return count
 
 
@@ -151,7 +231,7 @@ def write_coding_instructions(output_file: Path) -> int:
     with output_file.open("w", encoding="utf-8") as f:
         for item in CURATED_INSTRUCTIONS:
             f.write(json.dumps(item) + "\n")
-    print(f"  [instructions] Exported {len(CURATED_INSTRUCTIONS)} curated coding tasks to {output_file}")
+    print(f"  [instructions] Exported {len(CURATED_INSTRUCTIONS)} curated base coding tasks to {output_file}")
     return len(CURATED_INSTRUCTIONS)
 
 
@@ -159,15 +239,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Acquire and ingest clean code datasets for SUSA-1B CodeMind.")
     parser.add_argument(
         "--source",
-        choices=["stdlib", "algorithms", "synthetic", "all"],
-        default="stdlib",
-        help="Dataset source to acquire (default: stdlib).",
+        choices=["stdlib", "github", "huggingface", "all"],
+        default="all",
+        help="Dataset source to acquire (default: all).",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="data/raw_code",
         help="Target directory to store code files.",
+    )
+    parser.add_argument(
+        "--hf-samples",
+        type=int,
+        default=1500,
+        help="Number of Python samples to stream from Hugging Face.",
     )
     parser.add_argument(
         "--generate-instructions",
@@ -192,14 +278,18 @@ def main() -> int:
     if args.source in ("stdlib", "all"):
         total_files += extract_stdlib_code(out_path)
 
-    if args.source in ("algorithms", "all"):
-        total_files += clone_algorithms_repo(out_path)
+    if args.source in ("github", "all"):
+        total_files += clone_popular_repos(out_path)
+
+    if args.source in ("huggingface", "all"):
+        total_files += fetch_huggingface_code(out_path, max_samples=args.hf_samples)
 
     if args.generate_instructions or not Path(args.instructions_file).exists():
         write_coding_instructions(Path(args.instructions_file))
+        fetch_huggingface_instructions(Path(args.instructions_file), max_samples=300)
 
     print("\n" + "=" * 70)
-    print(f"  STATUS: DATASET ACQUISITION COMPLETE ({total_files} files ready)")
+    print(f"  STATUS: DATASET ACQUISITION COMPLETE ({total_files:,} code files ready)")
     print("=" * 70)
     return 0
 
