@@ -38,6 +38,7 @@ def main() -> int:
     parser.add_argument("--pilot", action="store_true", help="Run short pilot run (10 steps) to validate forward/backward and checkpointing.")
     parser.add_argument("--dry-run", action="store_true", help="Perform architecture validation and resource checking without training.")
     parser.add_argument("--device", type=str, default=None, help="Explicit device string (e.g. 'cuda', 'cpu').")
+    parser.add_argument("--additional-steps", type=int, default=None, help="Number of additional steps to train after checkpoint resumption.")
 
     args = parser.parse_args()
     config_path = Path(args.config)
@@ -133,8 +134,12 @@ def main() -> int:
         print(f"\n  [INFO] Resuming training from checkpoint: {args.resume_from}")
         resumed_step = trainer.load_checkpoint(args.resume_from)
         print(f"  Resumed from global step: {resumed_step}")
-
-    # 6. Execute Pretraining
+        if args.additional_steps is not None:
+            train_config.max_steps = resumed_step + args.additional_steps
+            print(f"  [INFO] Training for {args.additional_steps} additional steps (New target step: {train_config.max_steps}).")
+        elif train_config.max_steps <= resumed_step:
+            train_config.max_steps = resumed_step + 10
+            print(f"  [INFO] Target max_steps was <= resumed step. Auto-extended target to step {train_config.max_steps} (+10 steps).")
     trainer.train()
     return 0
 
