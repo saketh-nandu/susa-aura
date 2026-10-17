@@ -2,7 +2,7 @@
 SUSA AURA — AURA Connect: Online Research, Documentation Retrieval & Source Tracking.
 
 Provides modular web search interfaces, source attribution, URL tracking,
-HTML text extraction, prompt injection defense, and offline safety fallbacks.
+HTML text extraction, prompt injection defense, caching, and offline safety fallbacks.
 Enforces non-negotiable safety rules: untrusted web content is treated as data,
 never as system instructions, and credentials/secrets are scrubbed automatically.
 """
@@ -10,14 +10,24 @@ never as system instructions, and credentials/secrets are scrubbed automatically
 from __future__ import annotations
 
 import html
+import os
 import re
 import time
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass, field
-from typing import Protocol
+from enum import Enum
+from typing import Any, Protocol
 
 from aura.data.cleaner import DataCleaner
+
+
+class EvidenceType(str, Enum):
+    """Categorization of evidence confidence and provenance."""
+
+    VERIFIED_SOURCE = "verified_source"
+    CONTEXTUAL_SNIPPET = "contextual_snippet"
+    UNVERIFIED_INFERENCE = "unverified_inference"
+    UNKNOWN = "unknown"
 
 
 @dataclass
@@ -29,6 +39,7 @@ class SourceReference:
     snippet: str
     timestamp: float = field(default_factory=time.time)
     source_type: str = "web"  # "web", "doc", "local"
+    evidence_type: str = EvidenceType.VERIFIED_SOURCE.value
 
 
 @dataclass
@@ -40,6 +51,7 @@ class RetrievalResponse:
     context_text: str
     is_available: bool = True
     error_message: str | None = None
+    cached: bool = False
 
 
 class SearchProvider(Protocol):
@@ -95,9 +107,36 @@ class MockSearchProvider:
                             url=item["url"],
                             title=item["title"],
                             snippet=item["snippet"],
+                            evidence_type=EvidenceType.VERIFIED_SOURCE.value,
                         )
                     )
         return results[:max_results]
+
+
+class ResearchCache:
+    """In-memory TTL cache for research queries to prevent duplicate network calls."""
+
+    def __init__(self, default_ttl_sec: float = 3600.0) -> None:
+        self.default_ttl_sec = default_ttl_sec
+        self.cache: dict[str, tuple[float, RetrievalResponse]] = {}
+
+    def get(self, query: str) -> RetrievalResponse | None:
+        key = query.strip().lower()
+        if key in self.cache:
+            created_at, response = self.cache[key]
+            if time.time() - created_at <= self.default_ttl_sec:
+                response.cached = True
+                return response
+            else:
+                del self.cache[key]
+        return None
+
+    def put(self, query: str, response: RetrievalResponse) -> None:
+        key = query.strip().lower()
+        self.cache[key] = (time.time(), response)
+
+    def clear(self) -> None:
+        self.cache.clear()
 
 
 class AuraConnect:
@@ -118,10 +157,17 @@ class AuraConnect:
         provider: SearchProvider | None = None,
         enable_online: bool = True,
         data_cleaner: DataCleaner | None = None,
+        cache: ResearchCache | None = None,
     ) -> None:
+        env_local = os.environ.get("AURA_LOCAL_ONLY", "0").lower() in ("1", "true", "yes")
+        env_offline = os.environ.get("AURA_OFFLINE", "0").lower() in ("1", "true", "yes")
+        if env_local or env_offline:
+            enable_online = False
+
         self.enable_online = enable_online
-        self.provider = provider or (MockSearchProvider() if not enable_online else MockSearchProvider())
+        self.provider = provider or (OfflineSearchProvider() if not enable_online else MockSearchProvider())
         self.cleaner = data_cleaner or DataCleaner()
+        self.cache = cache or ResearchCache()
 
     @staticmethod
     def extract_text_from_html(html_content: str) -> str:
@@ -147,8 +193,13 @@ class AuraConnect:
 
         return clean_text
 
-    def research(self, query: str, max_results: int = 3) -> RetrievalResponse:
-        """Executes a search query, sanitizes results, and constructs source-grounded context."""
+    def research(self, query: str, max_results: int = 3, bypass_cache: bool = False) -> RetrievalResponse:
+        """Executes a search query, sanitizes results, caches outcomes, and constructs source-grounded context."""
+        if not bypass_cache:
+            cached_resp = self.cache.get(query)
+            if cached_resp is not None:
+                return cached_resp
+
         if not self.enable_online and isinstance(self.provider, OfflineSearchProvider):
             return RetrievalResponse(
                 query=query,
@@ -161,44 +212,55 @@ class AuraConnect:
         try:
             raw_sources = self.provider.search(query, max_results=max_results)
             if not raw_sources:
-                return RetrievalResponse(
+                resp = RetrievalResponse(
                     query=query,
                     sources=[],
-                    context_text="No external sources found for query.",
+                    context_text="",
                     is_available=True,
+                    error_message="No matching results found for query.",
                 )
+                self.cache.put(query, resp)
+                return resp
 
             sanitized_sources = []
             context_blocks = []
-
-            for i, src in enumerate(raw_sources, start=1):
-                safe_snippet = self.sanitize_retrieved_text(src.snippet)
-                safe_title = self.sanitize_retrieved_text(src.title)
-                safe_src = SourceReference(
-                    url=src.url,
-                    title=safe_title,
-                    snippet=safe_snippet,
-                    timestamp=src.timestamp,
-                    source_type=src.source_type,
+            for s in raw_sources:
+                clean_snippet = self.sanitize_retrieved_text(s.snippet)
+                sanitized_sources.append(
+                    SourceReference(
+                        url=s.url,
+                        title=s.title,
+                        snippet=clean_snippet,
+                        timestamp=s.timestamp,
+                        source_type=s.source_type,
+                        evidence_type=getattr(s, "evidence_type", EvidenceType.VERIFIED_SOURCE.value),
+                    )
                 )
-                sanitized_sources.append(safe_src)
-                context_blocks.append(
-                    f"[{i}] {safe_src.title} ({safe_src.url}):\n{safe_src.snippet}"
-                )
+                context_blocks.append(f"Source: [{s.title}]({s.url})\nSnippet: {clean_snippet}")
 
-            context_str = "\n\n".join(context_blocks)
-            return RetrievalResponse(
+            response = RetrievalResponse(
                 query=query,
                 sources=sanitized_sources,
-                context_text=context_str,
+                context_text="\n\n".join(context_blocks),
                 is_available=True,
             )
+            self.cache.put(query, response)
+            return response
 
-        except Exception as exc:
+        except Exception as e:
             return RetrievalResponse(
                 query=query,
                 sources=[],
                 context_text="",
                 is_available=False,
-                error_message=f"Retrieval error in AURA Connect: {exc}",
+                error_message=f"Retrieval error: {str(e)}",
             )
+
+    def format_citations(self, sources: list[SourceReference]) -> str:
+        """Formats source references into a standardized bibliography."""
+        if not sources:
+            return "No external sources cited."
+        lines = ["[CITATIONS & SOURCES]:"]
+        for idx, s in enumerate(sources, start=1):
+            lines.append(f"[{idx}] {s.title} — {s.url} ({s.evidence_type})")
+        return "\n".join(lines)

@@ -96,7 +96,10 @@ class WorkspaceInspector:
     def read_file(self, relative_path: str) -> str:
         """Reads content of a file within the workspace safely."""
         target = (self.workspace_root / relative_path).resolve()
-        if not str(target).startswith(str(self.workspace_root)):
+        try:
+            if not target.is_relative_to(self.workspace_root.resolve()):
+                raise PermissionError(f"Path traversal forbidden: {relative_path}")
+        except (ValueError, AttributeError):
             raise PermissionError(f"Path traversal forbidden: {relative_path}")
         if not target.exists():
             raise FileNotFoundError(f"File not found: {relative_path}")

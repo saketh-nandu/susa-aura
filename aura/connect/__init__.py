@@ -4,8 +4,10 @@ SUSA AURA — AURA Connect Subsystem.
 
 from aura.connect.retriever import (
     AuraConnect,
+    EvidenceType,
     MockSearchProvider,
     OfflineSearchProvider,
+    ResearchCache,
     RetrievalResponse,
     SearchProvider,
     SourceReference,
@@ -13,8 +15,10 @@ from aura.connect.retriever import (
 
 __all__ = [
     "AuraConnect",
+    "EvidenceType",
     "MockSearchProvider",
     "OfflineSearchProvider",
+    "ResearchCache",
     "RetrievalResponse",
     "SearchProvider",
     "SourceReference",

@@ -119,13 +119,19 @@ class GroupedQueryAttention(nn.Module):
         if attention_mask is not None:
             # Broadcast mask to [B, 1, q_len, total_kv_len]
             if attention_mask.dim() == 2:
-                # Padding mask [B, total_kv_len] -> [B, 1, 1, total_kv_len]
-                mask = attention_mask[:, None, None, :].to(dtype=torch.bool)
+                # Padding mask [B, total_kv_len]
+                pad_mask = attention_mask[:, None, None, :].to(dtype=torch.bool)
+                if q_len > 1 and q_len == total_kv_len:
+                    # Combine causal lower-triangular mask with padding mask
+                    causal_mask = torch.tril(torch.ones((q_len, total_kv_len), device=q.device, dtype=torch.bool))
+                    mask = pad_mask & causal_mask
+                else:
+                    mask = pad_mask
                 attn_output = F.scaled_dot_product_attention(
                     q, k, v,
                     attn_mask=mask,
                     dropout_p=dropout_p,
-                    is_causal=(q_len > 1 and q_len == total_kv_len),
+                    is_causal=False,
                 )
             else:
                 attn_output = F.scaled_dot_product_attention(

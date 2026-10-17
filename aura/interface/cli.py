@@ -39,6 +39,7 @@ def print_help() -> None:
 Commands:
   /help                  Show this help menu
   /inspect               Display workspace file tree
+  /plan <task>           Plan and execute bounded multi-step task
   /search <query>        Execute research retrieval via AURA Connect
   /memory                List active memories and user preferences
   /remember <key> <val>  Save a persistent fact or preference to memory
@@ -121,6 +122,23 @@ def main() -> int:
             if user_input == "/inspect":
                 print("\n[WORKSPACE TREE]:")
                 print(core.inspect_workspace())
+                continue
+
+            if user_input.startswith("/plan "):
+                goal = user_input[6:].strip()
+                print(f"[*] Formulating bounded execution plan for: '{goal}'...")
+                resp = core.solve(goal)
+                if resp.plan and resp.plan.steps:
+                    print(f"\n[EXECUTION PLAN ({len(resp.plan.steps)} steps)]:")
+                    for s in resp.plan.steps:
+                        status_mark = "✓" if s.status == "completed" else ("✗" if s.status == "failed" else "•")
+                        print(f"  [{status_mark}] Step {s.step_id}: {s.description} ({s.tool_name})")
+                        if s.verified:
+                            print("      └─ State verified: SUCCESS")
+                print(f"\n--- [AURA RESPONSE] (Time: {resp.execution_time_sec:.2f}s) ---")
+                print(resp.response_text)
+                if resp.sources:
+                    print(f"\n{core.connect.format_citations(resp.sources)}")
                 continue
 
             if user_input == "/tools":

@@ -59,6 +59,15 @@ class IsolatedCodeRunner:
                 "LC_ALL": "C.UTF-8",
             }
 
+            def _set_resource_limits() -> None:
+                try:
+                    import resource
+                    # 512 MB virtual memory ceiling to prevent host OOM
+                    mem_bytes = 512 * 1024 * 1024
+                    resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
+                except Exception:
+                    pass
+
             try:
                 proc = subprocess.run(
                     cmd,
@@ -67,6 +76,7 @@ class IsolatedCodeRunner:
                     capture_output=True,
                     text=True,
                     timeout=timeout,
+                    preexec_fn=_set_resource_limits,
                     check=False,
                 )
                 success = proc.returncode == 0

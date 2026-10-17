@@ -7,6 +7,7 @@ k-shingle MinHash approximations to prevent benchmark leakage and overfitting.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 import random
 import re
@@ -143,3 +144,95 @@ class Deduplicator:
         self.seen_signatures.clear()
         for bucket in self.lsh_buckets:
             bucket.clear()
+
+
+@dataclass
+class LeakageReport:
+    """Report detailing train/validation contamination and leakage statistics."""
+
+    total_train_docs: int
+    total_val_docs: int
+    exact_leakage_count: int
+    near_leakage_count: int
+    leakage_doc_ids: list[str]
+    clean: bool
+
+    @property
+    def exact_leakage_pct(self) -> float:
+        if self.total_val_docs == 0:
+            return 0.0
+        return (self.exact_leakage_count / self.total_val_docs) * 100.0
+
+    @property
+    def near_leakage_pct(self) -> float:
+        if self.total_val_docs == 0:
+            return 0.0
+        return (self.near_leakage_count / self.total_val_docs) * 100.0
+
+
+def check_train_val_leakage(
+    train_docs: dict[str, str] | list[tuple[str, str]],
+    val_docs: dict[str, str] | list[tuple[str, str]],
+    similarity_threshold: float = 0.85,
+) -> LeakageReport:
+    """Detects exact and near-duplicate leakage between training and validation corpora.
+
+    Args:
+        train_docs: Mapping or list of (doc_id, text) representing the training set.
+        val_docs: Mapping or list of (doc_id, text) representing the held-out validation set.
+        similarity_threshold: Jaccard similarity threshold above which a validation document
+                              is considered contaminated by the training set.
+
+    Returns:
+        LeakageReport with counts, percentages, and contaminated validation document IDs.
+    """
+    train_items = train_docs.items() if isinstance(train_docs, dict) else train_docs
+    val_items = val_docs.items() if isinstance(val_docs, dict) else val_docs
+
+    train_list = list(train_items)
+    val_list = list(val_items)
+
+    dedup = Deduplicator(similarity_threshold=similarity_threshold)
+
+    # 1. Index all training documents
+    train_exact_hashes: set[str] = set()
+    for doc_id, text in train_list:
+        h = compute_sha256(text)
+        train_exact_hashes.add(h)
+        dedup.is_near_duplicate(f"train_{doc_id}", text)
+
+    # 2. Check each validation document against training index
+    exact_leakage = 0
+    near_leakage = 0
+    leaked_ids: list[str] = []
+
+    for doc_id, text in val_list:
+        h = compute_sha256(text)
+        is_exact = h in train_exact_hashes
+        is_near = False
+
+        if is_exact:
+            exact_leakage += 1
+            leaked_ids.append(str(doc_id))
+        else:
+            # Check for near-duplicate against training corpus
+            shingles = dedup.get_shingles(text)
+            sig = dedup.compute_minhash_signature(shingles)
+            for train_sig in dedup.seen_signatures.values():
+                if dedup.estimate_jaccard_similarity(sig, train_sig) >= similarity_threshold:
+                    is_near = True
+                    break
+            if is_near:
+                near_leakage += 1
+                leaked_ids.append(str(doc_id))
+
+    clean = (exact_leakage == 0) and (near_leakage == 0)
+
+    return LeakageReport(
+        total_train_docs=len(train_list),
+        total_val_docs=len(val_list),
+        exact_leakage_count=exact_leakage,
+        near_leakage_count=near_leakage,
+        leakage_doc_ids=leaked_ids,
+        clean=clean,
+    )

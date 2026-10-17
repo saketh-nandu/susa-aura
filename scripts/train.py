@@ -35,6 +35,9 @@ def main() -> int:
     parser.add_argument("--max-steps", type=int, default=None, help="Override maximum training steps.")
     parser.add_argument("--batch-size", type=int, default=None, help="Override per-device batch size.")
     parser.add_argument("--lr", type=float, default=None, help="Override learning rate.")
+    parser.add_argument("--pilot", action="store_true", help="Run short pilot run (10 steps) to validate forward/backward and checkpointing.")
+    parser.add_argument("--dry-run", action="store_true", help="Perform architecture validation and resource checking without training.")
+    parser.add_argument("--device", type=str, default=None, help="Explicit device string (e.g. 'cuda', 'cpu').")
 
     args = parser.parse_args()
     config_path = Path(args.config)
@@ -62,6 +65,13 @@ def main() -> int:
     if args.lr is not None:
         train_config.lr = args.lr
 
+    if args.pilot:
+        print("\n  [INFO] Pilot validation mode enabled (10 steps, verbose logging and checkpointing).")
+        train_config.max_steps = 10
+        train_config.save_interval = 5
+        train_config.eval_interval = 5
+        train_config.log_interval = 1
+
     print(model_config.print_parameter_summary())
 
     # 2. Resource & Safety Inspection
@@ -71,6 +81,11 @@ def main() -> int:
         batch_size=train_config.batch_size,
         seq_len=model_config.max_seq_len,
     )
+
+    if args.dry_run:
+        print(res_est.summary())
+        print("\n  [INFO] Dry-run complete. Architecture, parameter calculation, and resource constraints verified.")
+        return 0
 
     if not sys_info.cuda_available and not res_est.feasible_on_local_laptop:
         print(f"\n  [SAFETY SHUTDOWN] Cannot train profile '{model_config.profile_name}' on local laptop CPU.")
@@ -102,12 +117,15 @@ def main() -> int:
 
     # 4. Instantiate Model & Trainer
     print("\n  [INFO] Instantiating model from randomly initialized weights...")
+    import torch
+    device = torch.device(args.device) if args.device else None
     model = AuraModel(model_config)
     trainer = AuraTrainer(
         model=model,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         config=train_config,
+        device=device,
     )
 
     # 5. Checkpoint Resumption

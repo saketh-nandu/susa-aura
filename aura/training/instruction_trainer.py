@@ -118,9 +118,14 @@ def collate_instruction_batch(
         batch_input_ids.append(padded_inp)
         batch_labels.append(padded_lbl)
 
+    stacked_inputs = torch.stack(batch_input_ids)
+    stacked_labels = torch.stack(batch_labels)
+    attention_mask = (stacked_inputs != pad_id).long()
+
     return {
-        "input_ids": torch.stack(batch_input_ids),
-        "labels": torch.stack(batch_labels),
+        "input_ids": stacked_inputs,
+        "labels": stacked_labels,
+        "attention_mask": attention_mask,
     }
 
 

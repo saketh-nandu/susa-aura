@@ -97,32 +97,43 @@ For $V=32000, d=2048, L=20, n_h=16, n_{kv}=8, d_k=128, d_{ff}=5632$:
 ---
 
 ## 5. Intelligent Assistant Subsystems
-
 ### 5.1 AURA Core
-- Orchestrates multi-turn conversation sessions.
-- Injects explicit system prompts and manages context window budget.
-- Dispatches tool invocations and ensures model outputs are grounded.
+- **Request Lifecycle & Intent Classification:** Classifies user intent into `DIRECT_ANSWER`, `RESEARCH_QA`, `CODE_REASONING`, `WORKSPACE_OPERATION`, or `MULTI_STEP_TASK`.
+- **Bounded Planning:** Constructs structured execution plans (`TaskPlan`, `TaskStep`) with step budgets and timeout limits.
+- **Loop Detection:** Detects repetitive unproductive tool calls and halts execution with actionable diagnostic feedback (`LoopDetectedError`).
+- **State Verification:** Automatically verifies disk changes or test outcomes post-execution to ensure real state alteration.
+- **Model Backend Abstraction:** Dispatches generation to `ModelBackend` (`NativeAuraBackend` locally; optional `ExternalModelAdapter` with strict local-only/privacy guarantees).
 
 ### 5.2 AURA Connect
 - Pluggable search providers (DuckDuckGo, documentation scrapers, offline mock fallback).
+- **Research Cache:** TTL caching mechanism preventing redundant queries and rate-limiting.
+- **Evidence Classification:** Categorizes retrieved evidence into `VERIFIED_SOURCE`, `CONTEXTUAL_SNIPPET`, `UNVERIFIED_INFERENCE`, or `UNKNOWN`.
 - HTML sanitization and text extraction.
-- Source URL attribution and citation metadata.
+- Source URL attribution and citation metadata bibliography generation.
 - Automated secret scrubbing and prompt injection defense.
 
 ### 5.3 AURA Memory
-- Active conversation turns for current session.
-- User preferences and verified project facts in persistent JSON storage.
+- **Multi-Tier Memory Architecture:** Categorizes data into `WORKING`, `USER_PREFERENCE`, `USER_FACT`, `KNOWLEDGE_DOC`, and `TASK_OUTCOME`.
+- **Write-Time Secret Scrubbing:** Automatically scrubs API keys, private keys, and credentials before writing to persistent storage.
+- **TTL Expiration & Purging:** Automatic expiration of temporary session and working memory records.
+- **Conflict Tracking:** Records conflict history when existing keys are updated with new content.
 - Keyword relevance retrieval and contextual prompt injection.
 - Explicit user consent gate before storing sensitive information.
 
 ### 5.4 AURA Tools
 - Safe workspace directory tree inspection and traversal.
+- **Typed Parameter Schemas:** Runtime validation of parameter types (`ToolParameter`) and required arguments before execution.
 - Non-destructive unified diff generation (`propose_edit`).
 - Reversible file modification with automatic `.bak` backups (`apply_edit`) with mandatory approval.
 - Sandboxed Python subprocess execution with timeouts and memory bounds.
 - Allowlisted terminal command runner with strict execution limits.
+- **Execution Audit Logging:** Tracks execution duration, status, and caller metadata for every tool call.
 
-### 5.5 AURA Interface
+### 5.5 AURA Evaluation
+- **AuraBenchmarkSuite:** Standardized 4-dimension capability benchmark testing instruction following, coding assertions, tool selection accuracy, and citation grounding.
+- **CodeEvaluator:** Sandboxed pass@1 unit-test verification and syntax validation.
+
+### 5.6 AURA Interface
 - High-efficiency command line chat REPL (`aura`).
 - Distinct visual markers for generated responses, sources, tool results, and memory records.
-- Slash command shortcuts (`/help`, `/inspect`, `/search`, `/memory`, `/diff`, `/tools`).
+- Slash command shortcuts (`/help`, `/inspect`, `/search`, `/memory`, `/diff`, `/tools`, `/stats`, `/clear`).

@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import psutil
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -135,6 +137,7 @@ class AuraTrainer:
         )
 
         self.global_step = 0
+        self.total_tokens_processed = 0
         self.history: list[dict[str, Any]] = []
 
     def _configure_optimizers(self) -> torch.optim.Optimizer:
@@ -242,24 +245,37 @@ class AuraTrainer:
         return {"val_loss": avg_loss, "perplexity": perplexity}
 
     def save_checkpoint(self, filepath: str | Path, val_loss: float | None = None) -> Path:
-        """Saves complete training checkpoint."""
+        """Saves complete training checkpoint atomically with full RNG and optimizer states."""
         save_path = Path(filepath)
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
+        rng_state = {
+            "python": random.getstate(),
+            "numpy": np.random.get_state(),
+            "torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        }
+
         state = {
             "step": self.global_step,
+            "total_tokens_processed": self.total_tokens_processed,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "scaler_state_dict": self.scaler.state_dict() if hasattr(self.scaler, "state_dict") else None,
+            "rng_state": rng_state,
             "model_config": self.model.config.to_dict(),
             "training_config": asdict(self.config),
             "val_loss": val_loss,
         }
-        torch.save(state, save_path)
+
+        # Atomic checkpoint writing via temporary file replacement
+        temp_path = save_path.with_name(f".{save_path.name}.tmp")
+        torch.save(state, temp_path)
+        os.replace(temp_path, save_path)
         return save_path
 
     def load_checkpoint(self, filepath: str | Path) -> int:
-        """Loads model weights, optimizer, and training step to resume training."""
+        """Loads model weights, optimizer, RNG state, and training step to resume training."""
         ckpt_path = Path(filepath)
         if not ckpt_path.exists():
             raise FileNotFoundError(f"Checkpoint not found at: {ckpt_path}")
@@ -270,7 +286,24 @@ class AuraTrainer:
         if "scaler_state_dict" in checkpoint and checkpoint["scaler_state_dict"] is not None:
             self.scaler.load_state_dict(checkpoint["scaler_state_dict"])
 
+        # Restore RNG states
+        if "rng_state" in checkpoint and checkpoint["rng_state"] is not None:
+            rng = checkpoint["rng_state"]
+            if "python" in rng and rng["python"] is not None:
+                random.setstate(rng["python"])
+            if "numpy" in rng and rng["numpy"] is not None:
+                np.random.set_state(rng["numpy"])
+            if "torch" in rng and rng["torch"] is not None:
+                torch.set_rng_state(rng["torch"])
+            if "cuda" in rng and rng["cuda"] is not None and torch.cuda.is_available():
+                torch.cuda.set_rng_state_all(rng["cuda"])
+
         self.global_step = checkpoint.get("step", 0)
+        self.total_tokens_processed = checkpoint.get("total_tokens_processed", 0)
+
+        # Restore learning rate for the current step
+        lr = self.get_lr(self.global_step)
+        self._update_lr(lr)
         return self.global_step
 
     def train(self) -> list[dict[str, Any]]:
@@ -326,6 +359,7 @@ class AuraTrainer:
 
                     step_loss += loss.item()
                     tokens_processed += tokens_in_batch
+                    self.total_tokens_processed += tokens_in_batch
 
                 # 3. Clip gradients and optimizer step
                 if self.use_amp and self.config.mixed_precision == "fp16":
@@ -347,9 +381,14 @@ class AuraTrainer:
 
                     # Memory tracking
                     if self.device.type == "cuda":
-                        mem_info = f"VRAM: {torch.cuda.memory_allocated() / (1024**2):.1f}MB"
+                        allocated_mb = torch.cuda.memory_allocated() / (1024**2)
+                        peak_mb = torch.cuda.max_memory_allocated() / (1024**2)
+                        mem_info = f"VRAM: {allocated_mb:.1f}MB (Peak: {peak_mb:.1f}MB)"
+                        peak_memory_mb = peak_mb
                     else:
-                        mem_info = f"RAM: {psutil.Process(os.getpid()).memory_info().rss / (1024**2):.1f}MB"
+                        rss_mb = psutil.Process(os.getpid()).memory_info().rss / (1024**2)
+                        mem_info = f"RAM: {rss_mb:.1f}MB"
+                        peak_memory_mb = rss_mb
 
                     avg_train_loss = accum_loss / self.config.log_interval
                     accum_loss = 0.0
@@ -359,6 +398,8 @@ class AuraTrainer:
                         "train_loss": avg_train_loss,
                         "lr": lr,
                         "tok_per_sec": tok_per_sec,
+                        "total_tokens": self.total_tokens_processed,
+                        "peak_memory_mb": peak_memory_mb,
                     }
 
                     # Periodic validation
@@ -374,6 +415,7 @@ class AuraTrainer:
                         f"| Loss: {avg_train_loss:.4f} "
                         f"| LR: {lr:.6f} "
                         f"| {tok_per_sec:.1f} tok/s "
+                        f"| Total: {self.total_tokens_processed:,} tok "
                         f"| {mem_info} "
                         f"{val_str}"
                     )
