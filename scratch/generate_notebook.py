@@ -100,7 +100,7 @@ from pathlib import Path
 # ==============================================================================
 # 1. EXECUTION MODE (Default: AUDIT)
 # ==============================================================================
-MODE = "PREPARE" #@param ["AUDIT", "PREPARE", "PILOT", "RESUME"]
+MODE = "AUDIT" #@param ["AUDIT", "PREPARE", "PILOT", "RESUME"]
 
 # ==============================================================================
 # 2. STORAGE & REPOSITORY SETTINGS
@@ -682,24 +682,28 @@ if current_mode in ["PREPARE", "PILOT", "RESUME"]:
         print(f"    - Gradient Norm:     {grad_norm.item():.4f} (Gradients Non-Zero & Finite)")
         print(f"    - Actual Peak VRAM:  {actual_peak_vram:.2f} GiB (Safe within Tesla T4 14.56GB VRAM)")
 
-        # Save verification checkpoint
-        test_ckpt_path = Path("checkpoints/checkpoint_step_1.pt")
-        test_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({
-            "step": 1,
-            "total_tokens_processed": 2048,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "loss": loss.item(),
-            "model_config": model_cfg.to_dict(),
-        }, test_ckpt_path)
-        print(f"[✓] Saved verification checkpoint: {test_ckpt_path}")
-
-        # Sync checkpoint to Google Drive
-        if AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists():
-            drive_dest = DRIVE_PATHS["checkpoints"] / "checkpoint_step_1.pt"
-            shutil.copy2(test_ckpt_path, drive_dest)
-            print(f"[✓] Checkpoint synced to Google Drive: {drive_dest}")
+        # Save verification checkpoint atomically via CheckpointManager
+        from aura.training.checkpoint_manager import CheckpointManager
+        ckpt_mgr = CheckpointManager(
+            local_dir="checkpoints",
+            sync_dir=DRIVE_PATHS["checkpoints"] if (AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists()) else None,
+            keep_last=3,
+        )
+        local_ckpt, synced_ckpt = ckpt_mgr.save(
+            step=1,
+            model=model,
+            optimizer=optimizer,
+            scaler=scaler,
+            total_tokens_processed=model_cfg.max_seq_len,
+            model_config=model_cfg.to_dict(),
+            val_loss=loss.item(),
+            train_loss=loss.item(),
+        )
+        print(f"[✓] Saved verification checkpoint locally: {local_ckpt}")
+        if synced_ckpt:
+            print(f"[✓] Checkpoint verified and synchronized to Google Drive: {synced_ckpt}")
+        else:
+            print(f"[!] Note: Checkpoint saved locally only (Drive sync not active).")
 
         SINGLE_STEP_PASSED = True
 else:
@@ -713,36 +717,42 @@ else:
     add_md("## Cell 10: Stage D — Checkpoint Resume & State Integrity Verification")
     add_code(
 """#@title Cell 10: Verify Checkpoint Resume Integrity { display-mode: "form" }
+from aura.training.checkpoint_manager import find_best_checkpoint, validate_checkpoint_file
+
 current_mode = AURA_SESSION_CONFIG["MODE"]
 print(f">>> [Cell 10 Active] Current Mode: {current_mode}")
 
-ckpt_path = Path("checkpoints/checkpoint_step_1.pt")
-if not ckpt_path.exists() and DRIVE_PATHS["checkpoints"].exists():
-    drive_ckpt = DRIVE_PATHS["checkpoints"] / "checkpoint_step_1.pt"
-    if drive_ckpt.exists():
-        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(drive_ckpt, ckpt_path)
+search_dirs = [Path("checkpoints")]
+if AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists():
+    search_dirs.append(DRIVE_PATHS["checkpoints"])
 
-if current_mode in ["PREPARE", "PILOT", "RESUME"] and ckpt_path.exists():
-    print("=" * 75)
-    print("  SUSA AURA 1B — STAGE D: CHECKPOINT RESUME & RESTORATION TEST")
-    print("=" * 75)
+print("=" * 75)
+print("  SUSA AURA 1B — STAGE D: CHECKPOINT DISCOVERY & RESUME INTEGRITY")
+print("=" * 75)
 
-    print(f"Loading checkpoint into fresh CPU state: {ckpt_path}...")
-    checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+best_cand = find_best_checkpoint(
+    search_dirs=search_dirs,
+    expected_vocab_size=32000,
+    expected_d_model=2048,
+)
 
-    assert "model_state_dict" in checkpoint, "Missing model_state_dict in checkpoint!"
-    assert "optimizer_state_dict" in checkpoint, "Missing optimizer_state_dict in checkpoint!"
-    assert checkpoint.get("step") == 1, "Expected step 1 in saved checkpoint!"
-
-    print("[✓] Checkpoint integrity verified:")
-    print(f"    - Recorded Step:       {checkpoint['step']}")
-    print(f"    - Recorded Loss:       {checkpoint['loss']:.4f}")
-    print(f"    - Restored Tensors:    {len(checkpoint['model_state_dict'])} layers")
-    print(f"    - Total Tokens:        {checkpoint.get('total_tokens_processed', 2048):,}")
+if best_cand and best_cand.is_valid:
+    print(f"[✓] Checkpoint resume integrity verified for: {best_cand.path}")
+    print(f"    - Global Step:         {best_cand.step}")
+    print(f"    - File Size:           {best_cand.size_bytes / (1024**2):.2f} MB")
+    if best_cand.metadata and "model_state_dict" in best_cand.metadata:
+        print(f"    - Restored Tensors:    {len(best_cand.metadata['model_state_dict'])} layers")
+    if best_cand.metadata and "val_loss" in best_cand.metadata and best_cand.metadata["val_loss"] is not None:
+        print(f"    - Recorded Loss:       {best_cand.metadata['val_loss']:.4f}")
     print("[✓] Resume test passed: Checkpoint format supports complete training state restoration.")
 else:
-    print(f"[INFO] Resume verification skipped (Mode: {current_mode}).")
+    if current_mode == "RESUME":
+        raise RuntimeError(
+            "[ERROR] RESUME MODE FAILED: No valid 1B checkpoint found on local disk or Google Drive. "
+            "Please switch Cell 1 MODE to 'PREPARE' or 'PILOT' to create the initial step 1 verification checkpoint."
+        )
+    else:
+        print("[INFO] No previous checkpoint found yet (expected in AUDIT/PREPARE before training).")
 """
     )
 
@@ -752,9 +762,13 @@ else:
     add_md("## Cell 11: Stage E — 10-Step Pilot Run or Resumed Pretraining")
     add_code(
 """#@title Cell 11: Execute Pilot or Resumed Training { display-mode: "form" }
+from aura.training.checkpoint_manager import find_best_checkpoint
+
 current_mode = AURA_SESSION_CONFIG["MODE"]
 run_pilot_opt = AURA_SESSION_CONFIG["RUN_10_STEP_PILOT"]
 print(f">>> [Cell 11 Active] Current Mode: {current_mode} | Pilot Opt-In: {run_pilot_opt}")
+
+drive_ckpt_dir = str(DRIVE_PATHS["checkpoints"]) if (AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists()) else None
 
 if current_mode == "PILOT":
     if not run_pilot_opt:
@@ -776,29 +790,38 @@ if current_mode == "PILOT":
             "--train-bin", "data/train.bin",
             "--val-bin", "data/val.bin",
             "--pilot",
+            "--checkpoint-dir", "checkpoints",
             "--device", "cuda:0"
         ]
+        if drive_ckpt_dir:
+            pilot_cmd.extend(["--drive-checkpoint-dir", drive_ckpt_dir, "--keep-last", "3"])
         print(f"Executing: {' '.join(pilot_cmd)}")
         subprocess.run(pilot_cmd, check=True)
         print("[✓] 10-Step Pilot Execution Complete!")
 
 elif current_mode == "RESUME":
-    # Locate valid checkpoint
     target_ckpt = AURA_SESSION_CONFIG["RESUME_CHECKPOINT"]
-    if not target_ckpt or target_ckpt == "<path_to_saved_checkpoint.pt>":
-        # Auto-detect latest checkpoint
-        available_ckpts = sorted(list(Path("checkpoints").glob("*.pt")) + list(DRIVE_PATHS["checkpoints"].glob("*.pt")))
-        if available_ckpts:
-            target_ckpt = str(available_ckpts[-1])
-            print(f"[RESUME] Auto-selected newest available checkpoint: {target_ckpt}")
-        else:
-            raise FileNotFoundError(
-                "[ERROR] RESUME FAILED: No saved checkpoint found on local disk or Drive. "
-                "Please set MODE='PREPARE' or MODE='PILOT' in Cell 1 to train initial steps first."
-            )
+    search_dirs = [Path("checkpoints")]
+    if drive_ckpt_dir:
+        search_dirs.append(Path(drive_ckpt_dir))
+
+    explicit_p = None if not target_ckpt or target_ckpt == "<path_to_saved_checkpoint.pt>" else target_ckpt
+    cand = find_best_checkpoint(
+        search_dirs=search_dirs,
+        explicit_path=explicit_p,
+        expected_vocab_size=32000,
+        expected_d_model=2048,
+    )
+    if cand is None or not cand.is_valid:
+        err = cand.error_message if cand else "No valid checkpoint found on local disk or Google Drive."
+        raise RuntimeError(
+            f"[ERROR] RESUME FAILED: {err}\\n"
+            f"Please run in 'PREPARE' or 'PILOT' mode to train initial steps, or check Drive connection."
+        )
 
     print("=" * 75)
-    print(f"  SUSA AURA 1B — RESUMING PRETRAINING FROM: {target_ckpt}")
+    print(f"  SUSA AURA 1B — RESUMING PRETRAINING FROM: {cand.path}")
+    print(f"  Discovered Global Step: {cand.step} (Numerical sorting verified)")
     print("=" * 75)
 
     resume_cmd = [
@@ -806,10 +829,13 @@ elif current_mode == "RESUME":
         "--config", AURA_SESSION_CONFIG["PROFILE_CONFIG"],
         "--train-bin", "data/train.bin",
         "--val-bin", "data/val.bin",
-        "--resume-from", target_ckpt,
+        "--resume-from", str(cand.path),
         "--additional-steps", str(AURA_SESSION_CONFIG["RESUME_ADDITIONAL_STEPS"]),
+        "--checkpoint-dir", "checkpoints",
         "--device", "cuda:0"
     ]
+    if drive_ckpt_dir:
+        resume_cmd.extend(["--drive-checkpoint-dir", drive_ckpt_dir, "--keep-last", "3"])
     print(f"Executing: {' '.join(resume_cmd)}")
     subprocess.run(resume_cmd, check=True)
     print("[✓] Resumed Training Completed Successfully!")
@@ -827,27 +853,45 @@ else:
 import glob
 import json
 from datetime import datetime, timezone
+from aura.training.checkpoint_manager import CheckpointManifest, clean_orphaned_tmp_files, validate_checkpoint_file, extract_step_from_filename
 
 current_mode = AURA_SESSION_CONFIG["MODE"]
 print(f">>> [Cell 12 Active] Current Mode: {current_mode}")
 print("=" * 75)
-print("  SUSA AURA 1B — STAGE F: FINAL SESSION REPORT & ARTIFACT SYNC")
+print("  SUSA AURA 1B — STAGE F: FINAL SESSION REPORT & PERSISTENCE AUDIT")
 print("=" * 75)
 
-# 1. Sync all checkpoints to persistent Google Drive
-synced_count = 0
+# Clean orphaned staging files
+clean_orphaned_tmp_files("checkpoints")
 if AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists():
-    local_ckpts = list(Path("checkpoints").glob("*.pt"))
-    print(f"Scanning for local checkpoints to sync ({len(local_ckpts)} found)...")
-    for ckpt in local_ckpts:
-        dest = DRIVE_PATHS["checkpoints"] / ckpt.name
-        if not dest.exists() or ckpt.stat().st_size != dest.stat().st_size:
-            shutil.copy2(ckpt, dest)
-            synced_count += 1
-            print(f"  [SYNC] {ckpt.name} ({ckpt.stat().st_size / (1024**2):.2f} MB) -> {dest}")
-    print(f"[✓] Google Drive checkpoint synchronization complete ({synced_count} synced).")
+    clean_orphaned_tmp_files(DRIVE_PATHS["checkpoints"])
 
-# 2. Write Run Report
+# Audit Drive checkpoints
+drive_ckpts = []
+if AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["checkpoints"].exists():
+    for f in DRIVE_PATHS["checkpoints"].glob("*.pt"):
+        if not f.name.startswith("."):
+            valid, msg, _ = validate_checkpoint_file(f, expected_vocab_size=32000, expected_d_model=2048)
+            step = extract_step_from_filename(f.name) or 0
+            drive_ckpts.append({"name": f.name, "step": step, "size_mb": round(f.stat().st_size / (1024**2), 2), "valid": valid, "info": msg})
+
+drive_ckpts.sort(key=lambda x: x["step"])
+
+print(f"[Google Drive Checkpoint Audit]: {len(drive_ckpts)} checkpoints found on Drive:")
+for c in drive_ckpts:
+    status_tag = "VALID ✓" if c["valid"] else "INVALID ✗"
+    print(f"  - {c['name']} (Step {c['step']}, {c['size_mb']} MB): {status_tag}")
+
+local_ckpts = []
+for f in Path("checkpoints").glob("*.pt"):
+    if not f.name.startswith("."):
+        valid, msg, _ = validate_checkpoint_file(f, expected_vocab_size=32000, expected_d_model=2048)
+        step = extract_step_from_filename(f.name) or 0
+        local_ckpts.append({"name": f.name, "step": step, "size_mb": round(f.stat().st_size / (1024**2), 2), "valid": valid, "info": msg})
+
+local_ckpts.sort(key=lambda x: x["step"])
+
+# Write Run Report
 report_data = {
     "project": "SUSA AURA",
     "architecture": "AURA 1B (target_1b)",
@@ -861,7 +905,10 @@ report_data = {
     },
     "model_stats": stats,
     "preflight_passed": CAN_RUN_GPU,
-    "saved_checkpoints": [str(c) for c in Path("checkpoints").glob("*.pt")],
+    "drive_checkpoints": drive_ckpts,
+    "local_checkpoints": local_ckpts,
+    "persistence_verified": len([c for c in drive_ckpts if c["valid"]]) > 0,
+    "fallback_step_1_verified": any(c["step"] == 1 and c["valid"] for c in drive_ckpts),
 }
 
 report_path = Path("logs/colab_run_report.json")
@@ -871,15 +918,15 @@ with open(report_path, "w", encoding="utf-8") as f:
 
 if AURA_SESSION_CONFIG["MOUNT_DRIVE"] and DRIVE_PATHS["reports"].exists():
     shutil.copy2(report_path, DRIVE_PATHS["reports"] / report_path.name)
-    print(f"[✓] Session report saved to Drive: {DRIVE_PATHS['reports'] / report_path.name}")
+    print(f"\\n[✓] Session report saved to Drive: {DRIVE_PATHS['reports'] / report_path.name}")
 
 print("=" * 75)
 print("  SESSION COMPLETE!")
 print("=" * 75)
-print("  To resume training in your next Colab session:")
-print("  1. In Cell 1, set MODE = 'RESUME'.")
-print("  2. Leave RESUME_CHECKPOINT blank to auto-detect the latest Drive checkpoint, or specify its path.")
-print("  3. Run all cells. Training will continue from your exact step without restarting.")
+if report_data["fallback_step_1_verified"]:
+    print("  [✓] Known-good step 1 checkpoint is verified on Google Drive.")
+else:
+    print("  [!] Notice: No verified step 1 checkpoint found on Drive. Run Stage C validation first.")
 print("=" * 75)
 """
     )

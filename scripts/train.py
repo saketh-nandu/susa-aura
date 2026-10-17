@@ -21,6 +21,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from aura.data.dataset import MemoryMappedPretrainingDataset
 from aura.model.config import ModelConfig
 from aura.model.transformer import AuraModel, SusaCodeMind
+from aura.training.checkpoint_manager import find_best_checkpoint, validate_checkpoint_file
 from aura.training.trainer import AuraTrainer, Trainer, TrainingConfig
 from aura.utils.resource_estimator import estimate_resources
 from aura.utils.system_checker import SystemInfo
@@ -39,6 +40,9 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Perform architecture validation and resource checking without training.")
     parser.add_argument("--device", type=str, default=None, help="Explicit device string (e.g. 'cuda', 'cpu').")
     parser.add_argument("--additional-steps", type=int, default=None, help="Number of additional steps to train after checkpoint resumption.")
+    parser.add_argument("--checkpoint-dir", type=str, default=None, help="Directory for local checkpoints.")
+    parser.add_argument("--drive-checkpoint-dir", type=str, default=None, help="Persistent Google Drive directory for immediate checkpoint synchronization.")
+    parser.add_argument("--keep-last", type=int, default=None, help="Number of recent checkpoints to retain.")
 
     args = parser.parse_args()
     config_path = Path(args.config)
@@ -65,6 +69,12 @@ def main() -> int:
         train_config.batch_size = args.batch_size
     if args.lr is not None:
         train_config.lr = args.lr
+    if args.checkpoint_dir is not None:
+        train_config.checkpoint_dir = args.checkpoint_dir
+    if args.drive_checkpoint_dir is not None:
+        train_config.drive_checkpoint_dir = args.drive_checkpoint_dir
+    if args.keep_last is not None:
+        train_config.keep_last_checkpoints = args.keep_last
 
     if args.pilot:
         print("\n  [INFO] Pilot validation mode enabled (10 steps, verbose logging and checkpointing).")
@@ -131,8 +141,33 @@ def main() -> int:
 
     # 5. Checkpoint Resumption
     if args.resume_from:
-        print(f"\n  [INFO] Resuming training from checkpoint: {args.resume_from}")
-        resumed_step = trainer.load_checkpoint(args.resume_from)
+        search_dirs = [Path(train_config.checkpoint_dir)]
+        if train_config.drive_checkpoint_dir:
+            search_dirs.append(Path(train_config.drive_checkpoint_dir))
+
+        explicit_p = None if args.resume_from.lower() == "auto" else args.resume_from
+        print(f"\n  [INFO] Locating resumption checkpoint (Target: {args.resume_from})...")
+        candidate = find_best_checkpoint(
+            search_dirs=search_dirs,
+            explicit_path=explicit_p,
+            expected_vocab_size=model_config.vocab_size,
+            expected_d_model=model_config.d_model,
+        )
+
+        if candidate is None or not candidate.is_valid:
+            err = candidate.error_message if candidate else "No valid checkpoint found in search directories."
+            print(f"\n  [RESUME HALT] Cannot resume training:\n  {err}", file=sys.stderr)
+            print("  Please check that the checkpoint exists, or run with --pilot to train from step 1.", file=sys.stderr)
+            return 1
+
+        print(f"  [✓] Verified Checkpoint Selected:")
+        print(f"      - Path:           {candidate.path}")
+        print(f"      - Step:           {candidate.step}")
+        print(f"      - Size:           {candidate.size_bytes / (1024**2):.2f} MB")
+        if candidate.metadata and "val_loss" in candidate.metadata and candidate.metadata["val_loss"] is not None:
+            print(f"      - Recorded Loss:  {candidate.metadata['val_loss']:.4f}")
+
+        resumed_step = trainer.load_checkpoint(candidate.path)
         print(f"  Resumed from global step: {resumed_step}")
         if args.additional_steps is not None:
             train_config.max_steps = resumed_step + args.additional_steps

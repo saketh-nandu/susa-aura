@@ -23,6 +23,11 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from aura.model.transformer import AuraModel, SusaCodeMind
+from aura.training.checkpoint_manager import (
+    CheckpointManager,
+    sync_checkpoint_file,
+    validate_checkpoint_file,
+)
 
 
 @dataclass
@@ -43,6 +48,8 @@ class TrainingConfig:
     eval_steps: int = 2
     save_interval: int = 10
     checkpoint_dir: str = "checkpoints"
+    drive_checkpoint_dir: str | None = None
+    keep_last_checkpoints: int = 3
     log_interval: int = 1
     gradient_checkpointing: bool = False
     use_8bit_adam: bool = False
@@ -65,12 +72,15 @@ class TrainingConfig:
             "eval_steps",
             "save_interval",
             "checkpoint_dir",
+            "drive_checkpoint_dir",
+            "keep_last_checkpoints",
             "log_interval",
             "gradient_checkpointing",
             "use_8bit_adam",
         }
         filtered = {k: v for k, v in train_data.items() if k in valid_keys}
         return cls(**filtered)
+
 
 
 class AuraTrainer:
@@ -139,6 +149,12 @@ class AuraTrainer:
         self.global_step = 0
         self.total_tokens_processed = 0
         self.history: list[dict[str, Any]] = []
+
+        self.checkpoint_manager = CheckpointManager(
+            local_dir=self.config.checkpoint_dir,
+            sync_dir=getattr(self.config, "drive_checkpoint_dir", None),
+            keep_last=getattr(self.config, "keep_last_checkpoints", 3),
+        )
 
     def _configure_optimizers(self) -> torch.optim.Optimizer:
         """Configures AdamW with weight decay separation.
@@ -244,34 +260,67 @@ class AuraTrainer:
         perplexity = math.exp(min(avg_loss, 20.0))  # Cap to prevent overflow
         return {"val_loss": avg_loss, "perplexity": perplexity}
 
-    def save_checkpoint(self, filepath: str | Path, val_loss: float | None = None) -> Path:
-        """Saves complete training checkpoint atomically with full RNG and optimizer states."""
-        save_path = Path(filepath)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-
-        rng_state = {
+    def _get_rng_state(self) -> dict[str, Any]:
+        return {
             "python": random.getstate(),
             "numpy": np.random.get_state(),
             "torch": torch.get_rng_state(),
             "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
         }
 
+    def save_checkpoint(
+        self,
+        filepath: str | Path | None = None,
+        val_loss: float | None = None,
+        train_loss: float | None = None,
+    ) -> Path:
+        """Saves complete training checkpoint atomically with full RNG, optimizer states,
+        manifest tracking, and immediate Google Drive synchronization if configured."""
+        if filepath is None:
+            local_path, _ = self.checkpoint_manager.save(
+                step=self.global_step,
+                model=self.model,
+                optimizer=self.optimizer,
+                scaler=self.scaler,
+                total_tokens_processed=self.total_tokens_processed,
+                model_config=self.model.config.to_dict() if hasattr(self.model, "config") else {},
+                training_config=asdict(self.config),
+                val_loss=val_loss,
+                train_loss=train_loss,
+                rng_state=self._get_rng_state(),
+            )
+            return local_path
+
+        save_path = Path(filepath)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+
         state = {
             "step": self.global_step,
             "total_tokens_processed": self.total_tokens_processed,
             "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict() if self.optimizer is not None else None,
             "scaler_state_dict": self.scaler.state_dict() if hasattr(self.scaler, "state_dict") else None,
-            "rng_state": rng_state,
-            "model_config": self.model.config.to_dict(),
+            "rng_state": self._get_rng_state(),
+            "model_config": self.model.config.to_dict() if hasattr(self.model, "config") else {},
             "training_config": asdict(self.config),
             "val_loss": val_loss,
+            "train_loss": train_loss,
         }
 
         # Atomic checkpoint writing via temporary file replacement
         temp_path = save_path.with_name(f".{save_path.name}.tmp")
         torch.save(state, temp_path)
+        with open(temp_path, "rb") as f:
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(temp_path, save_path)
+
+        # Sync to Drive if configured
+        if getattr(self.config, "drive_checkpoint_dir", None):
+            drive_dir = Path(self.config.drive_checkpoint_dir)
+            if drive_dir.exists():
+                sync_checkpoint_file(save_path, drive_dir)
+
         return save_path
 
     def load_checkpoint(self, filepath: str | Path) -> int:
@@ -280,9 +329,17 @@ class AuraTrainer:
         if not ckpt_path.exists():
             raise FileNotFoundError(f"Checkpoint not found at: {ckpt_path}")
 
-        checkpoint = torch.load(ckpt_path, map_location=self.device, weights_only=False)
+        is_valid, msg, checkpoint = validate_checkpoint_file(
+            ckpt_path,
+            expected_vocab_size=getattr(self.model.config, "vocab_size", None),
+            expected_d_model=getattr(self.model.config, "d_model", None),
+        )
+        if not is_valid or checkpoint is None:
+            raise ValueError(f"Checkpoint validation failed for '{ckpt_path}': {msg}")
+
         self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if "optimizer_state_dict" in checkpoint and checkpoint["optimizer_state_dict"] is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if "scaler_state_dict" in checkpoint and checkpoint["scaler_state_dict"] is not None:
             self.scaler.load_state_dict(checkpoint["scaler_state_dict"])
 
@@ -428,15 +485,38 @@ class AuraTrainer:
                 # 5. Periodic Checkpoint Saving
                 if self.global_step % self.config.save_interval == 0 or self.global_step == self.config.max_steps:
                     val_loss_to_save = self.history[-1].get("val_loss") if self.history else None
-                    ckpt_file = ckpt_dir / f"checkpoint_step_{self.global_step}.pt"
-                    self.save_checkpoint(ckpt_file, val_loss=val_loss_to_save)
-                    print(f"  [CKPT] Saved checkpoint to: {ckpt_file}")
+                    train_loss_to_save = self.history[-1].get("train_loss") if self.history else None
+                    local_f, synced_f = self.checkpoint_manager.save(
+                        step=self.global_step,
+                        model=self.model,
+                        optimizer=self.optimizer,
+                        scaler=self.scaler,
+                        total_tokens_processed=self.total_tokens_processed,
+                        model_config=self.model.config.to_dict() if hasattr(self.model, "config") else {},
+                        training_config=asdict(self.config),
+                        val_loss=val_loss_to_save,
+                        train_loss=train_loss_to_save,
+                        rng_state=self._get_rng_state(),
+                    )
+                    print(f"  [CKPT] Saved checkpoint step {self.global_step}: {local_f}")
+                    if synced_f:
+                        print(f"  [CKPT] Persistent Drive copy verified: {synced_f}")
 
         except KeyboardInterrupt:
             print("\n  [!] Training interrupted by user. Saving emergency recovery checkpoint...")
-            emergency_path = ckpt_dir / f"checkpoint_step_{self.global_step}_interrupted.pt"
-            self.save_checkpoint(emergency_path)
-            print(f"  [CKPT] Emergency recovery checkpoint saved to: {emergency_path}")
+            local_f, synced_f = self.checkpoint_manager.save(
+                step=self.global_step,
+                model=self.model,
+                optimizer=self.optimizer,
+                scaler=self.scaler,
+                total_tokens_processed=self.total_tokens_processed,
+                model_config=self.model.config.to_dict() if hasattr(self.model, "config") else {},
+                training_config=asdict(self.config),
+                rng_state=self._get_rng_state(),
+            )
+            print(f"  [CKPT] Emergency recovery checkpoint saved to: {local_f}")
+            if synced_f:
+                print(f"  [CKPT] Persistent Drive copy verified: {synced_f}")
 
         print("\n" + "=" * 70)
         print("  STATUS: PRETRAINING RUN COMPLETE!")
