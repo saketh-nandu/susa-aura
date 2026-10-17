@@ -1,4 +1,4 @@
-# SUSA-1B CodeMind — Training Guide
+# SUSA AURA — Training Guide
 
 ## 1. Zero-Cost Hardware Strategy
 

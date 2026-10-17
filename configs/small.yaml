@@ -1,6 +1,6 @@
-# SUSA-1B CodeMind — Small Experiment Configuration
+# SUSA AURA — Small Experiment Configuration
 # Intended for fast GPU experiments, memory baseline, and initial training loops.
-# Parameter count: ~40M parameters.
+# Parameter count: ~34M parameters.
 
 profile_name: "small"
 description: "Small profile for rapid training experiments on free GPU tiers (e.g., Colab T4/V100)."

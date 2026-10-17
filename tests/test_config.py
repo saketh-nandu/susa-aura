@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from susacodemind.model.config import ModelConfig
-from susacodemind.utils.resource_estimator import estimate_resources
+from aura.model.config import ModelConfig
+from aura.utils.resource_estimator import estimate_resources
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "configs"
 

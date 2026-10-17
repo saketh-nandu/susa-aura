@@ -1,4 +1,4 @@
-# SUSA-1B CodeMind — Dataset Provenance & Safety Policy
+# SUSA AURA — Dataset Provenance & Safety Policy
 
 ## 1. Compliance and Permitted Licenses
 All data ingested into the pretraining and instruction-tuning pipelines of SUSA-1B CodeMind must strictly originate from permitted open-source licenses:

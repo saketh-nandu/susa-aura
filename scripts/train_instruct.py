@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Supervised Instruction Fine-Tuning CLI.
+SUSA AURA — Supervised Instruction Fine-Tuning CLI.
 
-Fine-tunes a pretrained base checkpoint on coding instructions with prompt loss masking.
+Fine-tunes a pretrained base checkpoint on coding and reasoning instructions with prompt loss masking.
 
 Usage:
     python scripts/train_instruct.py --base-checkpoint checkpoints/checkpoint_step_8.pt --tokenizer-dir tokenizer_cache/smoke --use-synthetic --max-steps 10
@@ -19,19 +19,19 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.model.config import ModelConfig
-from susacodemind.model.transformer import SusaCodeMind
-from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
-from susacodemind.training.instruction_trainer import (
+from aura.model.config import ModelConfig
+from aura.model.transformer import AuraModel, SusaCodeMind
+from aura.tokenizer.bpe_tokenizer import AuraTokenizer, SusaTokenizer
+from aura.training.instruction_trainer import (
     InstructionDataset,
     generate_sample_instructions,
     load_instruction_jsonl,
 )
-from susacodemind.training.trainer import Trainer, TrainingConfig
+from aura.training.trainer import AuraTrainer, Trainer, TrainingConfig
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Instruction-tune SUSA-1B CodeMind on coding tasks.")
+    parser = argparse.ArgumentParser(description="Instruction-tune SUSA AURA on instruction-following and coding tasks.")
     parser.add_argument("--base-checkpoint", type=str, required=True, help="Path to base pretrained checkpoint (.pt).")
     parser.add_argument("--tokenizer-dir", type=str, required=True, help="Path to tokenizer directory.")
     parser.add_argument("--data-file", type=str, default=None, help="Path to JSONL file containing instruction pairs.")
@@ -44,12 +44,12 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — SUPERVISED INSTRUCTION FINE-TUNING")
+    print("  SUSA AURA — SUPERVISED INSTRUCTION FINE-TUNING")
     print("=" * 70)
 
     # 1. Load Tokenizer
     tok_path = Path(args.tokenizer_dir)
-    tokenizer = SusaTokenizer.load(tok_path)
+    tokenizer = AuraTokenizer.load(tok_path)
     print(f"  Loaded Tokenizer: {tok_path} (Vocab size: {tokenizer.vocab_size:,})")
 
     # 2. Load Instruction Samples
@@ -72,7 +72,7 @@ def main() -> int:
     checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
 
     model_cfg = ModelConfig.from_dict(checkpoint["model_config"])
-    model = SusaCodeMind(model_cfg)
+    model = AuraModel(model_cfg)
     model.load_state_dict(checkpoint["model_state_dict"])
     print(f"  Base weights successfully loaded ({model.count_parameters():,} parameters).")
 
@@ -88,7 +88,7 @@ def main() -> int:
         log_interval=1,
     )
 
-    trainer = Trainer(
+    trainer = AuraTrainer(
         model=model,
         train_dataset=dataset,
         config=train_cfg,

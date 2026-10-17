@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Environment & Configuration Verification Script.
+SUSA AURA — Environment & Configuration Verification Script.
 
 Inspects hardware, validates all configuration profiles, checks mathematical
 parameter counts, and prints a comprehensive health report.
@@ -15,14 +15,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.model.config import ModelConfig
-from susacodemind.utils.resource_estimator import estimate_resources
-from susacodemind.utils.system_checker import SystemInfo
+from aura.model.config import ModelConfig
+from aura.utils.resource_estimator import estimate_resources
+from aura.utils.system_checker import SystemInfo
 
 
 def main() -> int:
     print("\n" + "=" * 70)
-    print("  SUSA-1B CODEMIND — ENVIRONMENT & CONFIGURATION VERIFICATION")
+    print("  SUSA AURA — ENVIRONMENT & CONFIGURATION VERIFICATION")
     print("=" * 70)
 
     # 1. System Diagnostics

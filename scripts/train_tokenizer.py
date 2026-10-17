@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Tokenizer Training CLI.
+SUSA AURA — Tokenizer Training CLI.
 
 Usage:
     python scripts/train_tokenizer.py --use-synthetic --vocab-size 1024 --output-dir tokenizer_cache/smoke
@@ -16,12 +16,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.data.synthetic import generate_synthetic_samples
-from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
+from aura.data.synthetic import generate_synthetic_samples
+from aura.tokenizer.bpe_tokenizer import AuraTokenizer, SusaTokenizer
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Train SUSA-1B CodeMind BPE Tokenizer from scratch.")
+    parser = argparse.ArgumentParser(description="Train SUSA AURA BPE Tokenizer from scratch.")
     parser.add_argument("--vocab-size", type=int, default=1024, help="Vocabulary size (e.g. 1024 for smoke, 32000 for target).")
     parser.add_argument("--output-dir", type=str, default="tokenizer_cache/smoke", help="Directory to save trained tokenizer.")
     parser.add_argument("--input-dir", type=str, default=None, help="Directory containing raw training files.")
@@ -31,12 +31,12 @@ def main() -> int:
     output_path = Path(args.output_dir)
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — TOKENIZER TRAINING")
+    print("  SUSA AURA — TOKENIZER TRAINING")
     print("=" * 70)
     print(f"  Target Vocab Size: {args.vocab_size:,}")
     print(f"  Output Directory:  {output_path}")
 
-    tokenizer = SusaTokenizer.create_untrained()
+    tokenizer = AuraTokenizer.create_untrained()
 
     if args.use_synthetic or args.input_dir is None:
         print("\n  [INFO] Generating clean synthetic corpus for pipeline validation...")

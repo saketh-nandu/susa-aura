@@ -1,6 +1,6 @@
-# SUSA-1B CodeMind — Medium Experiment Configuration
+# SUSA AURA — Medium Experiment Configuration
 # Intended for GPU memory and throughput benchmarking before target 1B scale.
-# Parameter count: ~250M parameters.
+# Parameter count: ~222M parameters.
 
 profile_name: "medium"
 description: "Medium profile for benchmarking throughput and scaling on Colab / medium cloud GPUs."

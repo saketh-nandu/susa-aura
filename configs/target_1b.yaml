@@ -1,9 +1,9 @@
-# SUSA-1B CodeMind — Target 1B Model Configuration
-# Full architecture target: ~1.01 Billion parameters.
+# SUSA AURA — Target AURA 1B Model Configuration
+# Full architecture target: ~1.009 Billion parameters.
 # Enabled only after resource validation, benchmark checks, and memory profiling.
 
 profile_name: "target_1b"
-description: "The primary 1-billion parameter decoder-only Transformer for SUSA-1B CodeMind."
+description: "The primary 1-billion parameter decoder-only Transformer for SUSA AURA (AURA 1B)."
 
 model:
   vocab_size: 32000

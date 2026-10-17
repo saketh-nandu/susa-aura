@@ -9,7 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from susacodemind.agent import CodeMindAgent, WorkspaceInspector
+from aura.agent import CodeMindAgent
+from aura.core.runtime import AuraAgent, AuraCore
+from aura.tools.workspace import WorkspaceInspector
 
 
 @pytest.fixture

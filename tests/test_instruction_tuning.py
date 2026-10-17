@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
-from susacodemind.training.instruction_trainer import (
+from aura.tokenizer.bpe_tokenizer import AuraTokenizer, SusaTokenizer
+from aura.training.instruction_trainer import (
     InstructionDataset,
     InstructionSample,
     collate_instruction_batch,
@@ -18,12 +18,12 @@ from susacodemind.training.instruction_trainer import (
 TOKENIZER_DIR = Path(__file__).resolve().parent.parent / "tokenizer_cache" / "smoke"
 
 
-def get_or_create_smoke_tokenizer() -> SusaTokenizer:
+def get_or_create_smoke_tokenizer() -> AuraTokenizer:
     if (TOKENIZER_DIR / "tokenizer.json").exists():
-        return SusaTokenizer.load(TOKENIZER_DIR)
-    from susacodemind.data.synthetic import generate_synthetic_samples
+        return AuraTokenizer.load(TOKENIZER_DIR)
+    from aura.data.synthetic import generate_synthetic_samples
 
-    tok = SusaTokenizer.create_untrained()
+    tok = AuraTokenizer.create_untrained()
     samples = generate_synthetic_samples(count=10)
     tok.train_from_iterator([s.content for s in samples], vocab_size=256, min_frequency=1)
     TOKENIZER_DIR.mkdir(parents=True, exist_ok=True)

@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from susacodemind.data.synthetic import generate_synthetic_samples
-from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
+from aura.data.synthetic import generate_synthetic_samples
+from aura.tokenizer.bpe_tokenizer import AuraTokenizer, SusaTokenizer
 
 
 @pytest.fixture(scope="module")

@@ -1,7 +1,4 @@
-"""
-SUSA-1B CodeMind — Inference Subsystem.
-"""
+from aura.inference import *
+from aura.inference.generator import AuraGenerator, CodeGenerator
 
-from susacodemind.inference.generator import CodeGenerator
-
-__all__ = ["CodeGenerator"]
+__all__ = ["AuraGenerator", "CodeGenerator"]

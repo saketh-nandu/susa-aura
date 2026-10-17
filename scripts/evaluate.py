@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Model Evaluation & Benchmarking CLI.
+SUSA AURA — Model Evaluation & Benchmarking CLI.
 
 Evaluates trained model checkpoints for:
 1. Validation Loss and Perplexity on held-out test/validation binary shards.
@@ -23,13 +23,13 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.data.dataset import MemoryMappedPretrainingDataset
-from susacodemind.evaluation import (
+from aura.data.dataset import MemoryMappedPretrainingDataset
+from aura.evaluation import (
     CodeEvaluator,
     CodingBenchmarkTask,
     IsolatedCodeRunner,
 )
-from susacodemind.inference.generator import CodeGenerator
+from aura.inference.generator import AuraGenerator, CodeGenerator
 
 BENCHMARK_TASKS = [
     CodingBenchmarkTask(
@@ -59,7 +59,7 @@ BENCHMARK_TASKS = [
 ]
 
 
-def evaluate_perplexity(generator: CodeGenerator, val_bin_path: Path) -> dict:
+def evaluate_perplexity(generator: AuraGenerator | CodeGenerator, val_bin_path: Path) -> dict:
     """Calculates cross-entropy validation loss and perplexity on binary dataset shard."""
     if not val_bin_path.exists():
         return {}
@@ -90,7 +90,7 @@ def evaluate_perplexity(generator: CodeGenerator, val_bin_path: Path) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate SUSA-1B CodeMind on validation shards and coding tasks.")
+    parser = argparse.ArgumentParser(description="Evaluate SUSA AURA on validation shards and coding tasks.")
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to checkpoint (.pt).")
     parser.add_argument("--tokenizer-dir", type=str, required=True, help="Path to tokenizer directory.")
     parser.add_argument("--val-bin", type=str, default=None, help="Optional path to validation .bin shard.")
@@ -99,10 +99,10 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — EVALUATION & BENCHMARKING SUITE")
+    print("  SUSA AURA — EVALUATION & BENCHMARKING SUITE")
     print("=" * 70)
 
-    generator = CodeGenerator.from_checkpoint(
+    generator = AuraGenerator.from_checkpoint(
         checkpoint_path=args.checkpoint,
         tokenizer_path=args.tokenizer_dir,
     )

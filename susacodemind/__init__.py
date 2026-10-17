@@ -1,8 +1,17 @@
 """
-SUSA-1B CodeMind — Core ML Framework & Model Ecosystem.
-An original coding-focused Transformer language model trained from scratch.
+SUSA-1B CodeMind — Backward Compatibility Layer.
+DEPRECATED: CodeMind has evolved into SUSA AURA.
+Please update imports from `susacodemind` to `aura`.
 """
 
-__version__ = "0.1.0"
-__author__ = "SUSA Ecosystem"
-__all__ = ["__version__"]
+import warnings
+from aura import __author__, __version__
+
+warnings.warn(
+    "The 'susacodemind' package is deprecated and will be removed in a future release. "
+    "Please import from 'aura' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+__all__ = ["__version__", "__author__"]

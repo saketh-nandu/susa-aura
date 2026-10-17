@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Pre-Training Execution Script.
+SUSA AURA — Pre-Training Execution Script.
 
 Usage:
     python scripts/train.py --config configs/smoke.yaml --train-bin data/train.bin --val-bin data/val.bin
@@ -18,16 +18,16 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.data.dataset import MemoryMappedPretrainingDataset
-from susacodemind.model.config import ModelConfig
-from susacodemind.model.transformer import SusaCodeMind
-from susacodemind.training.trainer import Trainer, TrainingConfig
-from susacodemind.utils.resource_estimator import estimate_resources
-from susacodemind.utils.system_checker import SystemInfo
+from aura.data.dataset import MemoryMappedPretrainingDataset
+from aura.model.config import ModelConfig
+from aura.model.transformer import AuraModel, SusaCodeMind
+from aura.training.trainer import AuraTrainer, Trainer, TrainingConfig
+from aura.utils.resource_estimator import estimate_resources
+from aura.utils.system_checker import SystemInfo
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Pretrain SUSA-1B CodeMind Transformer from scratch.")
+    parser = argparse.ArgumentParser(description="Pretrain SUSA AURA Transformer from scratch.")
     parser.add_argument("--config", type=str, default="configs/smoke.yaml", help="Path to YAML configuration file.")
     parser.add_argument("--train-bin", type=str, default="data/train.bin", help="Path to training .bin shard.")
     parser.add_argument("--val-bin", type=str, default="data/val.bin", help="Path to validation .bin shard.")
@@ -40,7 +40,7 @@ def main() -> int:
     config_path = Path(args.config)
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — PRETRAINING LAUNCHER")
+    print("  SUSA AURA — PRETRAINING LAUNCHER")
     print("=" * 70)
 
     # 1. Load Model and Training Configuration
@@ -102,8 +102,8 @@ def main() -> int:
 
     # 4. Instantiate Model & Trainer
     print("\n  [INFO] Instantiating model from randomly initialized weights...")
-    model = SusaCodeMind(model_config)
-    trainer = Trainer(
+    model = AuraModel(model_config)
+    trainer = AuraTrainer(
         model=model,
         train_dataset=train_dataset,
         val_dataset=val_dataset,

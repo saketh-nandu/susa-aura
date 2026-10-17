@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Checkpoint Synchronization & Export Manifest Utility.
+SUSA AURA — Checkpoint Synchronization & Export Manifest Utility.
 
 Handles syncing active checkpoints between fast local runtime disk and persistent
 Google Drive storage, generating an experiment manifest with Git commit provenance.
@@ -56,7 +56,7 @@ def sync_checkpoints(src_dir: str, dest_dir: str, manifest_name: str = "run_mani
 
     # Build provenance manifest
     manifest_data = {
-        "project": "susa-1b-codemind",
+        "project": "susa-aura",
         "sync_time_utc": datetime.now(timezone.utc).isoformat(),
         "git_commit": get_git_commit_hash(),
         "source_dir": str(src.resolve()),
@@ -82,7 +82,7 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — CHECKPOINT SYNC & EXPORT MANIFEST")
+    print("  SUSA AURA — CHECKPOINT SYNC & EXPORT MANIFEST")
     print("=" * 70)
 
     res = sync_checkpoints(args.src_dir, args.dest_dir, args.manifest_name)

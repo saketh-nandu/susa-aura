@@ -11,13 +11,13 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from susacodemind.data.dataset import MemoryMappedPretrainingDataset, build_binary_dataset
-from susacodemind.data.synthetic import generate_synthetic_samples
-from susacodemind.tokenizer.bpe_tokenizer import SusaTokenizer
+from aura.data.dataset import MemoryMappedPretrainingDataset, build_binary_dataset
+from aura.data.synthetic import generate_synthetic_samples
+from aura.tokenizer.bpe_tokenizer import AuraTokenizer, SusaTokenizer
 
 
 @pytest.fixture(scope="module")
-def sample_dataset_path() -> tuple[Path, SusaTokenizer]:
+def sample_dataset_path() -> tuple[Path, AuraTokenizer]:
     """Generates synthetic data, trains tokenizer, and writes binary dataset shard."""
     tmp_dir = tempfile.mkdtemp()
     shard_path = Path(tmp_dir) / "test_shard.bin"

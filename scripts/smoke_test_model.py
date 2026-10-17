@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Interactive Model Smoke Test & Generation Demo.
+SUSA AURA — Interactive Model Smoke Test & Generation Demo.
 
 Demonstrates model instantiation, parameter verification, forward pass,
 loss computation, and autoregressive text generation on CPU using the smoke profile.
@@ -16,12 +16,12 @@ import torch
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.model import ModelConfig, SusaCodeMind
+from aura.model import AuraModel, ModelConfig
 
 
 def main() -> int:
     print("\n" + "=" * 70)
-    print("  SUSA-1B CODEMIND — MODEL ARCHITECTURE SMOKE TEST")
+    print("  SUSA AURA — MODEL ARCHITECTURE SMOKE TEST")
     print("=" * 70)
 
     config_path = PROJECT_ROOT / "configs" / "smoke.yaml"
@@ -33,7 +33,7 @@ def main() -> int:
     print(f"      - Max context window: {config.max_seq_len} tokens")
 
     print("\n[2/5] Instantiating PyTorch model from scratch...")
-    model = SusaCodeMind(config)
+    model = AuraModel(config)
     param_count = model.count_parameters()
     print(f"      - Instantiated parameters: {param_count:,}")
 
@@ -66,7 +66,7 @@ def main() -> int:
     print("      - KV-cache incremental generation: SUCCESS")
 
     print("\n" + "=" * 70)
-    print("  STATUS: SUSA-1B CODEMIND MODEL ARCHITECTURE VERIFIED SUCCESSFULLY!")
+    print("  STATUS: SUSA AURA MODEL ARCHITECTURE VERIFIED SUCCESSFULLY!")
     print("=" * 70 + "\n")
     return 0
 

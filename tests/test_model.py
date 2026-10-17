@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 import torch
 
-from susacodemind.model import (
+from aura.model import (
+    AuraModel,
     GroupedQueryAttention,
     KVCache,
     ModelConfig,

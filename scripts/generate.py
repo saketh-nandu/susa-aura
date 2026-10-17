@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Interactive Code Generation CLI.
+SUSA AURA — Interactive Code & Reasoning Generation CLI.
 
 Usage:
     python scripts/generate.py --checkpoint checkpoints/checkpoint_step_8.pt --tokenizer-dir tokenizer_cache/smoke --prompt "def quicksort(arr):"
@@ -16,11 +16,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.inference.generator import CodeGenerator
+from aura.inference.generator import AuraGenerator, CodeGenerator
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate code with SUSA-1B CodeMind.")
+    parser = argparse.ArgumentParser(description="Generate code and reasoning with SUSA AURA.")
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to model checkpoint (.pt).")
     parser.add_argument("--tokenizer-dir", type=str, required=True, help="Path to tokenizer directory.")
     parser.add_argument("--prompt", type=str, default=None, help="Prompt string to complete.")
@@ -33,11 +33,11 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — INFERENCE ENGINE")
+    print("  SUSA AURA — INFERENCE ENGINE")
     print("=" * 70)
     print(f"  Loading checkpoint: {args.checkpoint}...")
 
-    generator = CodeGenerator.from_checkpoint(
+    generator = AuraGenerator.from_checkpoint(
         checkpoint_path=args.checkpoint,
         tokenizer_path=args.tokenizer_dir,
     )
@@ -47,7 +47,7 @@ def main() -> int:
         print("\n  Entering Interactive Coding REPL. Type 'exit' or 'quit' to quit.\n")
         while True:
             try:
-                user_prompt = input("CodeMind> ")
+                user_prompt = input("AURA> ")
                 if user_prompt.strip().lower() in ["exit", "quit"]:
                     break
                 if not user_prompt.strip():

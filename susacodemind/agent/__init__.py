@@ -1,8 +1,5 @@
-"""
-SUSA-1B CodeMind — Coding Agent Subsystem.
-"""
+from aura.agent import *
+from aura.agent.runtime import AuraAgent, AuraCore, CodeMindAgent
+from aura.agent.workspace import FileInfo, WorkspaceInspector
 
-from susacodemind.agent.runtime import CodeMindAgent
-from susacodemind.agent.workspace import FileInfo, WorkspaceInspector
-
-__all__ = ["CodeMindAgent", "FileInfo", "WorkspaceInspector"]
+__all__ = ["AuraAgent", "AuraCore", "CodeMindAgent", "FileInfo", "WorkspaceInspector"]

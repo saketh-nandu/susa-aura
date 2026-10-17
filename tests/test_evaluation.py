@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from susacodemind.evaluation import (
+from aura.evaluation import (
     CodeEvaluator,
     CodingBenchmarkTask,
     IsolatedCodeRunner,

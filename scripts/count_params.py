@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Parameter Counter & Resource Estimator CLI.
+SUSA AURA — Parameter Counter & Resource Estimator CLI.
 
 Usage:
     python scripts/count_params.py configs/smoke.yaml
@@ -16,8 +16,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.model.config import ModelConfig
-from susacodemind.utils.resource_estimator import estimate_resources
+from aura.model.config import ModelConfig
+from aura.utils.resource_estimator import estimate_resources
 
 
 def main() -> int:

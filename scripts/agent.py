@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Coding Agent Runtime CLI.
+SUSA AURA — Coding & Developer Agent Runtime CLI.
 
 Usage:
     python scripts/agent.py --workspace . --inspect
@@ -16,11 +16,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.agent import CodeMindAgent
+from aura.core import AuraCore, CodeMindAgent
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="SUSA-1B CodeMind Safety-Constrained Coding Agent.")
+    parser = argparse.ArgumentParser(description="SUSA AURA Safety-Constrained Developer Agent.")
     parser.add_argument("--workspace", type=str, default=".", help="Path to project directory.")
     parser.add_argument("--inspect", action="store_true", help="Print visual workspace tree.")
     parser.add_argument("--propose-file", type=str, default=None, help="Relative file path for proposed edit.")
@@ -29,10 +29,10 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    agent = CodeMindAgent(workspace_root=args.workspace)
+    agent = AuraCore(workspace_root=args.workspace)
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — CODING AGENT RUNTIME")
+    print("  SUSA AURA — DEVELOPER AGENT RUNTIME")
     print("=" * 70)
 
     if args.inspect or (not args.propose_file and not args.content):

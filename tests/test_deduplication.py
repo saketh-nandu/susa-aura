@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from susacodemind.data.deduplication import Deduplicator
+from aura.data.deduplication import Deduplicator
 
 
 @pytest.fixture

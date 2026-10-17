@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ================================================================================
-  SUSA-1B CODEMIND — COMPLETE ALL-IN-ONE LARGE LANGUAGE MODEL IMPLEMENTATION
+  SUSA AURA — COMPLETE ALL-IN-ONE LARGE LANGUAGE MODEL IMPLEMENTATION
 ================================================================================
 An original, state-of-the-art decoder-only Transformer Large Language Model
 designed from scratch under the SUSA technology ecosystem.
@@ -33,7 +33,7 @@ from torch import nn
 
 @dataclass
 class ModelConfig:
-    """Complete architectural hyperparameters for SUSA-1B CodeMind."""
+    """Complete architectural hyperparameters for SUSA AURA."""
 
     vocab_size: int = 32000
     max_seq_len: int = 2048
@@ -393,19 +393,22 @@ class TransformerBlock(nn.Module):
 
 
 # ==============================================================================
-# 8. SUSA-1B CODEMIND MASTER MODEL
+# 8. SUSA AURA MASTER MODEL
 # ==============================================================================
 
 @dataclass
-class ModelOutput:
-    """Standardized output container for SusaCodeMind."""
+class AuraOutput:
+    """Standardized output container for AuraModel."""
     logits: torch.Tensor
     loss: torch.Tensor | None = None
     past_key_values: KVCache | None = None
 
+# Backward compatibility alias
+ModelOutput = AuraOutput
 
-class SusaCodeMind(nn.Module):
-    """SUSA-1B CodeMind Complete Decoder-Only Transformer."""
+
+class AuraModel(nn.Module):
+    """SUSA AURA Complete Decoder-Only Transformer."""
 
     def __init__(self, config: ModelConfig) -> None:
         super().__init__()
@@ -557,6 +560,10 @@ class SusaCodeMind(nn.Module):
         return current_ids
 
 
+# Backward compatibility alias
+SusaCodeMind = AuraModel
+
+
 # ==============================================================================
 # 9. OPTIMIZATION & TRAINING ENGINE
 # ==============================================================================
@@ -604,7 +611,7 @@ def get_cosine_lr(step: int, max_steps: int, warmup_steps: int, lr: float, min_l
 
 def main() -> int:
     print("=" * 75)
-    print("  SUSA-1B CODEMIND — COMPLETE ALL-IN-ONE ARCHITECTURE VERIFICATION")
+    print("  SUSA AURA — COMPLETE ALL-IN-ONE ARCHITECTURE VERIFICATION")
     print("=" * 75)
 
     # 1. Verify Parameter Counting Formula vs Actual Tensors
@@ -623,7 +630,7 @@ def main() -> int:
     # 2. Instantiate Smoke Model
     print("\n[2/4] Instantiating PyTorch model from scratch (Profile: smoke)...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SusaCodeMind(SMOKE_CONFIG).to(device)
+    model = AuraModel(SMOKE_CONFIG).to(device)
     actual_params = model.count_parameters()
     expected_params = SMOKE_CONFIG.calculate_exact_parameters()
 

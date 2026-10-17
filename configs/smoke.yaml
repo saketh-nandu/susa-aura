@@ -1,6 +1,6 @@
-# SUSA-1B CodeMind — Smoke Test Configuration
+# SUSA AURA — Smoke Test Configuration
 # Intended for fast local CPU unit testing, forward/backward pass validation, and CI.
-# Parameter count: ~300k parameters.
+# Parameter count: ~158k parameters.
 
 profile_name: "smoke"
 description: "Ultra-compact profile for rapid CPU verification, functional tests, and pipeline sanity."

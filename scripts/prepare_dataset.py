@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SUSA-1B CodeMind — Dataset Ingestion, Sanitization & Binary Tokenization CLI.
+SUSA AURA — Dataset Ingestion, Sanitization & Binary Tokenization CLI.
 
 Usage:
     python scripts/prepare_dataset.py --tokenizer-dir tokenizer_cache/smoke --use-synthetic
@@ -17,13 +17,13 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from susacodemind.data import (
+from aura.data import (
     DataCleaner,
     Deduplicator,
     build_binary_dataset,
     generate_synthetic_samples,
 )
-from susacodemind.tokenizer import SusaTokenizer
+from aura.tokenizer import AuraTokenizer, SusaTokenizer
 
 
 def main() -> int:
@@ -39,7 +39,7 @@ def main() -> int:
     random.seed(args.seed)
 
     print("=" * 70)
-    print("  SUSA-1B CODEMIND — DATASET INGESTION & SHARD PREPARATION")
+    print("  SUSA AURA — DATASET INGESTION & SHARD PREPARATION")
     print("=" * 70)
 
     # 1. Load Tokenizer

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from susacodemind.data.cleaner import DataCleaner
+from aura.data.cleaner import DataCleaner
 
 
 @pytest.fixture

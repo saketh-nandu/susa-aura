@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 import torch
 
-from susacodemind.model.config import ModelConfig
-from susacodemind.model.transformer import SusaCodeMind
-from susacodemind.training.trainer import Trainer, TrainingConfig
+from aura.model.config import ModelConfig
+from aura.model.transformer import AuraModel, SusaCodeMind
+from aura.training.trainer import AuraTrainer, Trainer, TrainingConfig
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "configs"
 

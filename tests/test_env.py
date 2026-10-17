@@ -8,7 +8,7 @@ import sys
 
 import torch
 
-from susacodemind.utils.system_checker import SystemInfo
+from aura.utils.system_checker import SystemInfo
 
 
 def test_python_and_pytorch_versions():
@@ -33,7 +33,7 @@ def test_system_info_inspection():
 
     # Summary string formatting check
     summary_text = info.summary()
-    assert "SUSA-1B CodeMind" in summary_text
+    assert "SUSA AURA" in summary_text
     assert "Operating System:" in summary_text
     assert "RAM Total" in summary_text
 
